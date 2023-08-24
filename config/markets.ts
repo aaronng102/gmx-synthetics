@@ -463,6 +463,12 @@ const config: {
 
       maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+
+      negativeSwapImpactFactor: decimalToFloat(15, 10), // 0.01% for 66,667 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(15, 10), // 0.01% for 66,667 USD of imbalance
+
+      swapFeeFactorForPositiveImpact: decimalToFloat(5, 5), // 0.005%,
+      swapFeeFactorForNegativeImpact: decimalToFloat(2, 4), // 0.02%,
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDT" },
@@ -475,6 +481,12 @@ const config: {
 
       maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+
+      swapFeeFactorForPositiveImpact: decimalToFloat(5, 5), // 0.005%,
+      swapFeeFactorForNegativeImpact: decimalToFloat(2, 4), // 0.02%,
     },
     {
       tokens: { longToken: "USDC", shortToken: "DAI" },
@@ -487,6 +499,12 @@ const config: {
 
       maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 18),
+
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+
+      swapFeeFactorForPositiveImpact: decimalToFloat(5, 5), // 0.005%,
+      swapFeeFactorForNegativeImpact: decimalToFloat(2, 4), // 0.02%,
     },
   ],
   avalanche: [
