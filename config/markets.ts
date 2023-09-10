@@ -149,8 +149,9 @@ const baseMarketConfig: BaseMarketConfig = {
 
   minCollateralUsd: decimalToFloat(1, 0), // 1 USD
 
-  borrowingFactorForLongs: decimalToFloat(5, 9), // 0.000000005, 0.0000005% / second, 15.77% per year if the pool is 100% utilized
-  borrowingFactorForShorts: decimalToFloat(5, 9), // 0.000000005, 0.0000005% / second, 15.77% per year if the pool is 100% utilized
+  // factor in open interest reserve factor 80%
+  borrowingFactorForLongs: decimalToFloat(625, 11), // 0.00000000625 * 80% = 0.000000005, 0.0000005% / second, 15.77% per year if the pool is 100% utilized
+  borrowingFactorForShorts: decimalToFloat(625, 11), // 0.00000000625 * 80% = 0.000000005, 0.0000005% / second, 15.77% per year if the pool is 100% utilized
 
   borrowingExponentFactorForLongs: decimalToFloat(1),
   borrowingExponentFactorForShorts: decimalToFloat(1),
@@ -310,8 +311,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 9),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(2, 9),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 50%
+      borrowingFactorForLongs: decimalToFloat(15, 9), // 0.000000015 * 50% =  0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(15, 9), // 0,000000015 * 50% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "DOGE", longToken: "WETH", shortToken: "USDC" },
@@ -338,8 +340,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(5, 9),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(5, 9),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 50%
+      borrowingFactorForLongs: decimalToFloat(15, 9), // 0.000000015 * 50% =  0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(15, 9), // 0,000000015 * 50% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "SOL", longToken: "SOL", shortToken: "USDC" },
@@ -364,8 +367,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(5, 9),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(5, 9),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "LTC", longToken: "WETH", shortToken: "USDC" },
@@ -392,8 +396,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(25, 10),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(25, 10),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 50%
+      borrowingFactorForLongs: decimalToFloat(15, 9), // 0.000000015 * 50% =  0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(15, 9), // 0,000000015 * 50% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "UNI", longToken: "UNI", shortToken: "USDC" },
@@ -418,8 +423,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(4, 8),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(4, 8),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "LINK", longToken: "LINK", shortToken: "USDC" },
@@ -444,8 +450,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(1, 8),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(1, 8),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "ARB", longToken: "ARB", shortToken: "USDC" },
@@ -470,8 +477,9 @@ const config: {
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(1, 8),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(1, 8),
 
-      borrowingFactorForLongs: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
-      borrowingFactorForShorts: decimalToFloat(75, 10), // 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDC.e" },
