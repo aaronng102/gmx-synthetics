@@ -1,5 +1,6 @@
 import hre from "hardhat";
 
+import { validateMarketConfigs } from "./validateMarketConfigsUtils";
 import { encodeData } from "../utils/hash";
 import { bigNumberify } from "../utils/math";
 import { getMarketKey, getMarketTokenAddresses, getOnchainMarkets } from "../utils/market";
@@ -27,6 +28,22 @@ const processMarkets = async ({ markets, onchainMarketsByTokens, tokens, general
       encodeData(["address", "address"], [marketToken, shortToken]),
       marketConfig.maxShortTokenPoolAmount,
       `maxShortTokenPoolAmount ${marketToken}, ${shortToken}`
+    );
+
+    await handleConfig(
+      "uint",
+      keys.MAX_POOL_AMOUNT_FOR_DEPOSIT,
+      encodeData(["address", "address"], [marketToken, longToken]),
+      marketConfig.maxLongTokenPoolAmountForDeposit,
+      `maxLongTokenPoolAmountForDeposit ${marketToken}, ${longToken}`
+    );
+
+    await handleConfig(
+      "uint",
+      keys.MAX_POOL_AMOUNT_FOR_DEPOSIT,
+      encodeData(["address", "address"], [marketToken, shortToken]),
+      marketConfig.maxShortTokenPoolAmountForDeposit,
+      `maxShortTokenPoolAmountForDeposit ${marketToken}, ${shortToken}`
     );
 
     await handleConfig(
@@ -349,6 +366,11 @@ const processMarkets = async ({ markets, onchainMarketsByTokens, tokens, general
 };
 
 async function main() {
+  const { errors } = await validateMarketConfigs();
+  if (errors.length !== 0) {
+    throw new Error("Invalid market configs");
+  }
+
   const { read } = hre.deployments;
 
   const generalConfig = await hre.gmx.getGeneral();
@@ -411,7 +433,13 @@ async function main() {
 
   console.log(`updating ${multicallWriteParams.length} params`);
   console.log("multicallWriteParams", multicallWriteParams);
-  await config.multicall(multicallWriteParams);
+
+  if (process.env.WRITE === "true") {
+    const tx = await config.multicall(multicallWriteParams);
+    console.log(`tx sent: ${tx.hash}`);
+  } else {
+    console.log("NOTE: executed in read-only mode, no transactions were sent");
+  }
 }
 
 main()

@@ -57,9 +57,17 @@ contract AdlHandler is BaseOrderHandler {
         onlyAdlKeeper
         withOraclePrices(oracle, dataStore, eventEmitter, oracleParams)
     {
+        OracleUtils.RealtimeFeedReport[] memory reports = oracle.validateRealtimeFeeds(
+            dataStore,
+            oracleParams.realtimeFeedTokens,
+            oracleParams.realtimeFeedData
+        );
+
         uint256[] memory maxOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMaxOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Max
         );
 
         AdlUtils.updateAdlState(
@@ -102,14 +110,24 @@ contract AdlHandler is BaseOrderHandler {
 
         cache.startingGas = gasleft();
 
+        OracleUtils.RealtimeFeedReport[] memory reports = oracle.validateRealtimeFeeds(
+            dataStore,
+            oracleParams.realtimeFeedTokens,
+            oracleParams.realtimeFeedData
+        );
+
         cache.minOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMinOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Min
         );
 
         cache.maxOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMaxOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Max
         );
 
         AdlUtils.validateAdl(
@@ -144,8 +162,11 @@ contract AdlHandler is BaseOrderHandler {
             )
         );
 
+        Order.Props memory order = OrderStoreUtils.get(dataStore, cache.key);
+
         BaseOrderUtils.ExecuteOrderParams memory params = _getExecuteOrderParams(
             cache.key,
+            order,
             oracleParams,
             msg.sender,
             cache.startingGas,

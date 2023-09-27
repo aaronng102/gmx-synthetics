@@ -308,6 +308,32 @@ Decimals: 30 - (token decimals) - (number of decimals desired for precision)
 - USDC: 30 - 6 - 6 => 18
 - DG: 30 - 18 - 11 => 1
 
+## For Realtime Feeds
+
+Example calculation for WNT:
+
+- The number of realtime decimals: 8
+- The number of token decimals for WNT: 18
+- realtimePrice: price \* (10 ^ 8)
+- The price per unit of token: `realtimePrice / (10 ^ 8) / (10 ^ 18) * (10 ^ 30)`
+- e.g. `(5000 * (10 ^ 8)) / (10 ^ 8) / (10 ^ 18) * (10 ^ 30) = 5000 * (10 ^ 12)`
+- The stored oracle price is: `realtimePrice * multiplier / (10 ^ 30)`
+- In this case the multiplier should be (10 ^ 34)
+- e.g. `(5000 * (10 ^ 8)) * (10 ^ 34) / (10 ^ 30) = 5000 * (10 ^ 12)`
+
+Example calculation for WBTC:
+
+- The number of realtime decimals: 8
+- The number of token decimals for WBTC: 8
+- realtimePrice: price \* (10 ^ 8)
+- the price per unit of token: `realtimePrice / (10 ^ 8) / (10 ^ 8) * (10 ^ 30)`
+- e.g. `(50,000 * (10 ^ 8)) / (10 ^ 8) / (10 ^ 8) * (10 ^ 30) = 50,000 * (10 ^ 22)`
+- the stored oracle price is: `realtimePrice * multiplier / (10 ^ 30)`
+- in this case the multiplier should be (10 ^ 44)
+- e.g. `(50,000 * (10 ^ 8)) * (10 ^ 44) / (10 ^ 30) = 50,000 * (10 ^ 22)`
+
+The formula for the multipler is: `10 ^ (60 - realtimeDecimals - tokenDecimals)`
+
 # Funding Fees
 
 Funding fees incentivise the balancing of long and short positions, the side with the larger open interest pays a funding fee to the side with the smaller open interest.
@@ -318,7 +344,72 @@ For example if the funding factor per second is 1 / 50,000, and the funding expo
 
 The funding fee per second for shorts would be `-0.00001 * 150,000 / 50,000 => 0.00003 => -0.003%`.
 
-It is also possible to set a stableFundingFactor, this would result in the specified funding factor being used instead of the dynamic funding factor.
+It is also possible to set a fundingIncreaseFactorPerSecond value, this would result in the following funding logic:
+
+- The `longShortImbalance` is calculated as `[abs(longOpenInterest - shortOpenInterest) / totalOpenInterest] ^ fundingExponentFactor`
+- If the current `longShortImbalance` is more than the `thresholdForStableFunding`, then the funding rate will increase by `longShortImbalance * fundingIncreaseFactorPerSecond`
+- If the current `longShortImbalance` is more than `thresholdForDecreaseFunding` and less than `thresholdForStableFunding` and the skew is in the same direction as the funding, then the funding rate will not change
+- If the current `longShortImbalance` is less than `thresholdForDecreaseFunding` and the skew is in the same direction as the funding, then the funding rate will decrease by `fundingDecreaseFactorPerSecond`
+
+## Examples
+
+### Example 1
+
+- thresholdForDecreaseFunding is 3%
+- thresholdForStableFunding is 5%
+- fundingIncreaseFactorPerSecond is 0.0001%
+- fundingDecreaseFactorPerSecond is 0.000002%
+- durationInSeconds is 600 seconds
+- longs are paying shorts funding
+- there are more longs than shorts
+- longShortImbalance is 6%
+
+Since longShortImbalance > thresholdForStableFunding, savedFundingFactorPerSecond should increase by `0.0001% * 6% * 600 = 0.0036%`
+
+### Example 2
+
+- thresholdForDecreaseFunding is 3%
+- thresholdForStableFunding is 5%
+- fundingIncreaseFactorPerSecond is 0.0001%
+- fundingDecreaseFactorPerSecond is 0.000002%
+- durationInSeconds is 600 seconds
+- longs are paying shorts funding
+- there are more longs than shorts
+- longShortImbalance is 4%
+
+Since longs are already paying shorts, the skew is the same, and the longShortImbalance < thresholdForStableFunding, savedFundingFactorPerSecond should not change
+
+### Example 3
+
+- thresholdForDecreaseFunding is 3%
+- thresholdForStableFunding is 5%
+- fundingIncreaseFactorPerSecond is 0.0001%
+- fundingDecreaseFactorPerSecond is 0.000002%
+- durationInSeconds is 600 seconds
+- longs are paying shorts funding
+- there are more longs than shorts
+- longShortImbalance is 2%
+
+Since longShortImbalance < thresholdForDecreaseFunding, savedFundingFactorPerSecond should decrease by `0.000002% * 600 = 0.0012%`
+
+### Example 4
+
+- thresholdForDecreaseFunding is 3%
+- thresholdForStableFunding is 5%
+- fundingIncreaseFactorPerSecond is 0.0001%
+- fundingDecreaseFactorPerSecond is 0.000002%
+- durationInSeconds is 600 seconds
+- longs are paying shorts funding
+- there are more shorts than longs
+- longShortImbalance is 1%
+
+Since the skew is in the other direction, savedFundingFactorPerSecond should decrease by `0.0001% * 1% * 600 = 0.0006%`
+
+Note that there are possible ways to game the funding fees, the funding factors should be adjusted to minimize this possibility:
+
+- If longOpenInterest > shortOpenInterest and longShortImbalance is within thresholdForStableFunding, a user holding a short position could open a long position to increase the longShortImbalance and attempt to cause the funding fee to increase. In an active market, it should be difficult to predict when an opposing short position would be opened by someone else to earn the increased funding fee which should make this gaming difficult, the funding factors can also be adjusted to help minimize the benefit of this gaming.
+
+- If longOpenInterest > shortOpenInterest and longShortImbalance > thresholdForStableFunding, a trader holding a long position could make multiple small trades during this time to ensure that the funding factor is continually updated instead of a larger value being used for the entirety of the duration, this should minimize the funding fee for long positions but should not decrease the funding fee below the expected rates.
 
 # Borrowing Fees
 
@@ -483,6 +574,8 @@ After the initial setup:
 
 - Price impact can be reduced by using positions and swaps and trading across markets, chains, forks, other protocols, this is partially mitigated with virtual inventory tracking
 
+- Virtual inventory tracks the amount of tokens in pools, it must be ensured that the tokens in each grouping are the same type and have the same decimals, i.e. the long tokens across pools in the group should have the same decimals, the short tokens across pools in the group should have the same decimals, assuming USDC has 6 decimals and DAI has 18 decimals, markets like ETH-USDC, ETH-DAI should not be grouped
+
 - Virtual IDs must be set before market creation / token whitelisting, if it is set after trading for the token / market is done, the tracking would not be accurate and may need to be adjusted
 
 - If an execution transaction requires a large amount of gas that may be close to the maximum block gas limit, it may be possible to stuff blocks to prevent the transaction from being included in blocks
@@ -511,7 +604,7 @@ After the initial setup:
 
 - If trader PnL is capped, positions that are closed earlier may receive a lower PnL ratio compared to positions that are closed later
 
-- Due to the difference in positive and negative position price impact, there can be a build up of virtual token amounts in the position impact pool which would affect the pricing of market tokens, the feature to gradually reduce these virtual tokens should be added if needed
+- Due to the difference in positive and negative position price impact, there can be a build up of virtual token amounts in the position impact pool which would affect the pricing of market tokens, the position impact pool should be gradually distributed if needed
 
 - Contracts with the "CONTROLLER" role have access to important functions such as setting DataStore values, due to this, care should be taken to ensure that such contracts do not have generic functions or functions that can be intentionally used to change important values
 
@@ -543,7 +636,11 @@ After the initial setup:
 
 - Swaps for decrease orders may not be successful, this could result in two output tokens, one output in the collateral token and another in the profit token
 
+- ETH transfers are sent with NATIVE_TOKEN_TRANSFER_GAS_LIMIT for the gas limit, if the transfer fails due to insufficient gas or other errors, the ETH is send as WETH instead
+
 - Accounts may receive ETH for ADLs / liquidations, if the account cannot receive ETH then WETH would be sent instead
+
+- If profit is capped due to MAX_PNL_FACTOR_FOR_TRADERS, the percentage of profit paid out to traders may differ depending on the ordering of when positions are decreased / closed since the cap is re-calculated based on the current state of the pool
 
 - Positive price impact may be capped by configuration and the amount of tokens in the impact pools
 

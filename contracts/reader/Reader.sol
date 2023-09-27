@@ -21,28 +21,14 @@ import "../market/Market.sol";
 import "../adl/AdlUtils.sol";
 
 import "./ReaderUtils.sol";
+import "./ReaderDepositUtils.sol";
+import "./ReaderWithdrawalUtils.sol";
 
 // @title Reader
 // @dev Library for read functions
 contract Reader {
     using SafeCast for uint256;
     using Position for Position.Props;
-
-    struct VirtualInventory {
-        uint256 virtualPoolAmountForLongToken;
-        uint256 virtualPoolAmountForShortToken;
-        int256 virtualInventoryForPositions;
-    }
-
-    struct MarketInfo {
-        Market.Props market;
-        uint256 borrowingFactorPerSecondForLongs;
-        uint256 borrowingFactorPerSecondForShorts;
-        ReaderUtils.BaseFundingValues baseFunding;
-        MarketUtils.GetNextFundingAmountPerSizeResult nextFunding;
-        VirtualInventory virtualInventory;
-        bool isDisabled;
-    }
 
     function getMarket(DataStore dataStore, address key) external view returns (Market.Props memory) {
         return MarketStoreUtils.get(dataStore, key);
@@ -174,9 +160,9 @@ contract Reader {
         MarketUtils.MarketPrices[] memory marketPricesList,
         uint256 start,
         uint256 end
-    ) external view returns (MarketInfo[] memory) {
+    ) external view returns (ReaderUtils.MarketInfo[] memory) {
         address[] memory marketKeys = MarketStoreUtils.getMarketKeys(dataStore, start, end);
-        MarketInfo[] memory marketInfoList = new MarketInfo[](marketKeys.length);
+        ReaderUtils.MarketInfo[] memory marketInfoList = new ReaderUtils.MarketInfo[](marketKeys.length);
         for (uint256 i; i < marketKeys.length; i++) {
             MarketUtils.MarketPrices memory prices = marketPricesList[i];
             address marketKey = marketKeys[i];
@@ -190,45 +176,12 @@ contract Reader {
         DataStore dataStore,
         MarketUtils.MarketPrices memory prices,
         address marketKey
-    ) public view returns (MarketInfo memory) {
-        Market.Props memory market = MarketStoreUtils.get(dataStore, marketKey);
-
-        uint256 borrowingFactorPerSecondForLongs = MarketUtils.getBorrowingFactorPerSecond(
+    ) public view returns (ReaderUtils.MarketInfo memory) {
+        return ReaderUtils.getMarketInfo(
             dataStore,
-            market,
             prices,
-            true
+            marketKey
         );
-
-        uint256 borrowingFactorPerSecondForShorts = MarketUtils.getBorrowingFactorPerSecond(
-            dataStore,
-            market,
-            prices,
-            false
-        );
-
-        ReaderUtils.BaseFundingValues memory baseFunding = ReaderUtils.getBaseFundingValues(dataStore, market);
-
-        MarketUtils.GetNextFundingAmountPerSizeResult memory nextFunding = ReaderUtils.getNextFundingAmountPerSize(
-            dataStore,
-            market,
-            prices
-        );
-
-        VirtualInventory memory virtualInventory = getVirtualInventory(dataStore, market);
-
-        bool isMarketDisabled = dataStore.getBool(Keys.isMarketDisabledKey(market.marketToken));
-
-        return
-            MarketInfo(
-                market,
-                borrowingFactorPerSecondForLongs,
-                borrowingFactorPerSecondForShorts,
-                baseFunding,
-                nextFunding,
-                virtualInventory,
-                isMarketDisabled
-            );
     }
 
     function getMarketTokenPrice(
@@ -303,25 +256,6 @@ contract Reader {
         return ReaderPricingUtils.getSwapAmountOut(dataStore, market, prices, tokenIn, amountIn, uiFeeReceiver);
     }
 
-    function getVirtualInventory(
-        DataStore dataStore,
-        Market.Props memory market
-    ) internal view returns (VirtualInventory memory) {
-        (, uint256 virtualPoolAmountForLongToken, uint256 virtualPoolAmountForShortToken) = MarketUtils
-            .getVirtualInventoryForSwaps(dataStore, market.marketToken);
-        (, int256 virtualInventoryForPositions) = MarketUtils.getVirtualInventoryForPositions(
-            dataStore,
-            market.indexToken
-        );
-
-        return
-            VirtualInventory(
-                virtualPoolAmountForLongToken,
-                virtualPoolAmountForShortToken,
-                virtualInventoryForPositions
-            );
-    }
-
     function getExecutionPrice(
         DataStore dataStore,
         address marketKey,
@@ -384,5 +318,39 @@ contract Reader {
         );
 
         return (latestAdlBlock, shouldEnableAdl, pnlToPoolFactor, maxPnlFactor);
+    }
+
+    function getDepositAmountOut(
+        DataStore dataStore,
+        Market.Props memory market,
+        MarketUtils.MarketPrices memory prices,
+        uint256 longTokenAmount,
+        uint256 shortTokenAmount,
+        address uiFeeReceiver
+    ) external view returns (uint256) {
+        return ReaderDepositUtils.getDepositAmountOut(
+            dataStore,
+            market,
+            prices,
+            longTokenAmount,
+            shortTokenAmount,
+            uiFeeReceiver
+        );
+    }
+
+    function getWithdrawalAmountOut(
+        DataStore dataStore,
+        Market.Props memory market,
+        MarketUtils.MarketPrices memory prices,
+        uint256 marketTokenAmount,
+        address uiFeeReceiver
+    ) external view returns (uint256, uint256) {
+        return ReaderWithdrawalUtils.getWithdrawalAmountOut(
+            dataStore,
+            market,
+            prices,
+            marketTokenAmount,
+            uiFeeReceiver
+        );
     }
 }

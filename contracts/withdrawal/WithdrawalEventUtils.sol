@@ -32,6 +32,10 @@ library WithdrawalEventUtils {
         eventData.addressItems.setItem(2, "callbackContract", withdrawal.callbackContract());
         eventData.addressItems.setItem(3, "market", withdrawal.market());
 
+        eventData.addressItems.initArrayItems(2);
+        eventData.addressItems.setItem(0, "longTokenSwapPath", withdrawal.longTokenSwapPath());
+        eventData.addressItems.setItem(1, "shortTokenSwapPath", withdrawal.shortTokenSwapPath());
+
         eventData.uintItems.initItems(6);
         eventData.uintItems.setItem(0, "marketTokenAmount", withdrawal.marketTokenAmount());
         eventData.uintItems.setItem(1, "minLongTokenAmount", withdrawal.minLongTokenAmount());
@@ -46,8 +50,9 @@ library WithdrawalEventUtils {
         eventData.bytes32Items.initItems(1);
         eventData.bytes32Items.setItem(0, "key", key);
 
-        eventEmitter.emitEventLog1(
+        eventEmitter.emitEventLog2(
             "WithdrawalCreated",
+            key,
             Cast.toBytes32(withdrawal.account()),
             eventData
         );
@@ -55,15 +60,21 @@ library WithdrawalEventUtils {
 
     function emitWithdrawalExecuted(
         EventEmitter eventEmitter,
-        bytes32 key
+        bytes32 key,
+        address account
     ) external {
         EventUtils.EventLogData memory eventData;
 
         eventData.bytes32Items.initItems(1);
         eventData.bytes32Items.setItem(0, "key", key);
 
-        eventEmitter.emitEventLog(
+        eventData.addressItems.initItems(1);
+        eventData.addressItems.setItem(0, "account", account);
+
+        eventEmitter.emitEventLog2(
             "WithdrawalExecuted",
+            key,
+            Cast.toBytes32(account),
             eventData
         );
     }
@@ -71,6 +82,7 @@ library WithdrawalEventUtils {
     function emitWithdrawalCancelled(
         EventEmitter eventEmitter,
         bytes32 key,
+        address account,
         string memory reason,
         bytes memory reasonBytes
     ) external {
@@ -79,14 +91,19 @@ library WithdrawalEventUtils {
         eventData.bytes32Items.initItems(1);
         eventData.bytes32Items.setItem(0, "key", key);
 
+        eventData.addressItems.initItems(1);
+        eventData.addressItems.setItem(0, "account", account);
+
         eventData.stringItems.initItems(1);
         eventData.stringItems.setItem(0, "reason", reason);
 
         eventData.bytesItems.initItems(1);
         eventData.bytesItems.setItem(0, "reasonBytes", reasonBytes);
 
-        eventEmitter.emitEventLog(
+        eventEmitter.emitEventLog2(
             "WithdrawalCancelled",
+            key,
+            Cast.toBytes32(account),
             eventData
         );
     }

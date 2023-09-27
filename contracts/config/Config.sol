@@ -10,6 +10,8 @@ import "../role/RoleModule.sol";
 import "../event/EventEmitter.sol";
 import "../utils/BasicMulticall.sol";
 import "../utils/Precision.sol";
+import "../utils/Cast.sol";
+import "../market/MarketUtils.sol";
 
 // @title Config
 contract Config is ReentrancyGuard, RoleModule, BasicMulticall {
@@ -38,6 +40,32 @@ contract Config is ReentrancyGuard, RoleModule, BasicMulticall {
         eventEmitter = _eventEmitter;
 
         _initAllowedBaseKeys();
+    }
+
+    function setPositionImpactDistributionRate(
+        address market,
+        uint256 minPositionImpactPoolAmount,
+        uint256 positionImpactPoolDistributionRate
+    ) external onlyConfigKeeper nonReentrant {
+        MarketUtils.distributePositionImpactPool(dataStore, eventEmitter, market);
+
+        dataStore.setUint(Keys.minPositionImpactPoolAmountKey(market), minPositionImpactPoolAmount);
+        dataStore.setUint(Keys.positionImpactPoolDistributionRateKey(market), positionImpactPoolDistributionRate);
+
+        EventUtils.EventLogData memory eventData;
+
+        eventData.addressItems.initItems(1);
+        eventData.addressItems.setItem(0, "market", market);
+
+        eventData.uintItems.initItems(2);
+        eventData.uintItems.setItem(0, "minPositionImpactPoolAmount", minPositionImpactPoolAmount);
+        eventData.uintItems.setItem(1, "positionImpactPoolDistributionRate", positionImpactPoolDistributionRate);
+
+        eventEmitter.emitEventLog1(
+            "SetPositionImpactPoolDistributionRate",
+            Cast.toBytes32(market),
+            eventData
+        );
     }
 
     // @dev set a bool value
@@ -198,6 +226,8 @@ contract Config is ReentrancyGuard, RoleModule, BasicMulticall {
         allowedBaseKeys[Keys.HOLDING_ADDRESS] = true;
 
         allowedBaseKeys[Keys.MIN_HANDLE_EXECUTION_ERROR_GAS] = true;
+        allowedBaseKeys[Keys.MIN_HANDLE_EXECUTION_ERROR_GAS_TO_FORWARD] = true;
+        allowedBaseKeys[Keys.MIN_ADDITIONAL_GAS_FOR_EXECUTION] = true;
 
         allowedBaseKeys[Keys.IS_MARKET_DISABLED] = true;
 
@@ -208,7 +238,10 @@ contract Config is ReentrancyGuard, RoleModule, BasicMulticall {
         allowedBaseKeys[Keys.MAX_POSITION_IMPACT_FACTOR_FOR_LIQUIDATIONS] = true;
 
         allowedBaseKeys[Keys.MAX_POOL_AMOUNT] = true;
+        allowedBaseKeys[Keys.MAX_POOL_AMOUNT_FOR_DEPOSIT] = true;
         allowedBaseKeys[Keys.MAX_OPEN_INTEREST] = true;
+
+        allowedBaseKeys[Keys.MIN_MARKET_TOKENS_FOR_FIRST_DEPOSIT] = true;
 
         allowedBaseKeys[Keys.CREATE_DEPOSIT_FEATURE_DISABLED] = true;
         allowedBaseKeys[Keys.CANCEL_DEPOSIT_FEATURE_DISABLED] = true;
@@ -228,6 +261,8 @@ contract Config is ReentrancyGuard, RoleModule, BasicMulticall {
         allowedBaseKeys[Keys.CLAIM_COLLATERAL_FEATURE_DISABLED] = true;
         allowedBaseKeys[Keys.CLAIM_AFFILIATE_REWARDS_FEATURE_DISABLED] = true;
         allowedBaseKeys[Keys.CLAIM_UI_FEES_FEATURE_DISABLED] = true;
+
+        allowedBaseKeys[Keys.SUBACCOUNT_FEATURE_DISABLED] = true;
 
         allowedBaseKeys[Keys.MIN_ORACLE_BLOCK_CONFIRMATIONS] = true;
         allowedBaseKeys[Keys.MAX_ORACLE_PRICE_AGE] = true;
@@ -282,8 +317,13 @@ contract Config is ReentrancyGuard, RoleModule, BasicMulticall {
         allowedBaseKeys[Keys.MIN_PNL_FACTOR_AFTER_ADL] = true;
 
         allowedBaseKeys[Keys.FUNDING_FACTOR] = true;
-        allowedBaseKeys[Keys.STABLE_FUNDING_FACTOR] = true;
         allowedBaseKeys[Keys.FUNDING_EXPONENT_FACTOR] = true;
+        allowedBaseKeys[Keys.FUNDING_INCREASE_FACTOR_PER_SECOND] = true;
+        allowedBaseKeys[Keys.FUNDING_DECREASE_FACTOR_PER_SECOND] = true;
+        allowedBaseKeys[Keys.MIN_FUNDING_FACTOR_PER_SECOND] = true;
+        allowedBaseKeys[Keys.MAX_FUNDING_FACTOR_PER_SECOND] = true;
+        allowedBaseKeys[Keys.THRESHOLD_FOR_STABLE_FUNDING] = true;
+        allowedBaseKeys[Keys.THRESHOLD_FOR_DECREASE_FUNDING] = true;
 
         allowedBaseKeys[Keys.BORROWING_FACTOR] = true;
         allowedBaseKeys[Keys.BORROWING_EXPONENT_FACTOR] = true;

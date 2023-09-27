@@ -5,7 +5,11 @@ export const NONCE = hashString("NONCE");
 
 export const FEE_RECEIVER = hashString("FEE_RECEIVER");
 export const HOLDING_ADDRESS = hashString("HOLDING_ADDRESS");
+export const IN_STRICT_PRICE_FEED_MODE = hashString("IN_STRICT_PRICE_FEED_MODE");
+
 export const MIN_HANDLE_EXECUTION_ERROR_GAS = hashString("MIN_HANDLE_EXECUTION_ERROR_GAS");
+export const MIN_ADDITIONAL_GAS_FOR_EXECUTION = hashString("MIN_ADDITIONAL_GAS_FOR_EXECUTION");
+export const MIN_HANDLE_EXECUTION_ERROR_GAS_TO_FORWARD = hashString("MIN_HANDLE_EXECUTION_ERROR_GAS_TO_FORWARD");
 
 export const MAX_LEVERAGE = hashString("MAX_LEVERAGE");
 
@@ -22,6 +26,8 @@ export const ACCOUNT_POSITION_LIST = hashString("ACCOUNT_POSITION_LIST");
 
 export const ORDER_LIST = hashString("ORDER_LIST");
 export const ACCOUNT_ORDER_LIST = hashString("ACCOUNT_ORDER_LIST");
+
+export const SUBACCOUNT_LIST = hashString("SUBACCOUNT_LIST");
 
 export const CREATE_DEPOSIT_FEATURE_DISABLED = hashString("CREATE_DEPOSIT_FEATURE_DISABLED");
 export const CANCEL_DEPOSIT_FEATURE_DISABLED = hashString("CANCEL_DEPOSIT_FEATURE_DISABLED");
@@ -45,6 +51,7 @@ export const MAX_UI_FEE_FACTOR = hashString("MAX_UI_FEE_FACTOR");
 
 export const IS_MARKET_DISABLED = hashString("IS_MARKET_DISABLED");
 export const MAX_SWAP_PATH_LENGTH = hashString("MAX_SWAP_PATH_LENGTH");
+export const MIN_MARKET_TOKENS_FOR_FIRST_DEPOSIT = hashString("MIN_MARKET_TOKENS_FOR_FIRST_DEPOSIT");
 
 export const MIN_ORACLE_BLOCK_CONFIRMATIONS = hashString("MIN_ORACLE_BLOCK_CONFIRMATIONS");
 export const MAX_ORACLE_PRICE_AGE = hashString("MAX_ORACLE_PRICE_AGE");
@@ -70,6 +77,8 @@ export const REQUEST_EXPIRATION_BLOCK_AGE = hashString("REQUEST_EXPIRATION_BLOCK
 export const PRICE_FEED = hashString("PRICE_FEED");
 export const PRICE_FEED_MULTIPLIER = hashString("PRICE_FEED_MULTIPLIER");
 export const PRICE_FEED_HEARTBEAT_DURATION = hashString("PRICE_FEED_HEARTBEAT_DURATION");
+export const REALTIME_FEED_ID = hashString("REALTIME_FEED_ID");
+export const REALTIME_FEED_MULTIPLIER = hashString("REALTIME_FEED_MULTIPLIER");
 export const STABLE_PRICE = hashString("STABLE_PRICE");
 
 export const ORACLE_TYPE = hashString("ORACLE_TYPE");
@@ -80,9 +89,14 @@ export const OPEN_INTEREST_IN_TOKENS = hashString("OPEN_INTEREST_IN_TOKENS");
 export const COLLATERAL_SUM = hashString("COLLATERAL_SUM");
 export const POOL_AMOUNT = hashString("POOL_AMOUNT");
 export const MAX_POOL_AMOUNT = hashString("MAX_POOL_AMOUNT");
+export const MAX_POOL_AMOUNT_FOR_DEPOSIT = hashString("MAX_POOL_AMOUNT_FOR_DEPOSIT");
 export const MAX_OPEN_INTEREST = hashString("MAX_OPEN_INTEREST");
 
 export const POSITION_IMPACT_POOL_AMOUNT = hashString("POSITION_IMPACT_POOL_AMOUNT");
+export const MIN_POSITION_IMPACT_POOL_AMOUNT = hashString("MIN_POSITION_IMPACT_POOL_AMOUNT");
+export const POSITION_IMPACT_POOL_DISTRIBUTION_RATE = hashString("POSITION_IMPACT_POOL_DISTRIBUTION_RATE");
+export const POSITION_IMPACT_POOL_DISTRIBUTED_AT = hashString("POSITION_IMPACT_POOL_DISTRIBUTED_AT");
+
 export const SWAP_IMPACT_POOL_AMOUNT = hashString("SWAP_IMPACT_POOL_AMOUNT");
 
 export const POSITION_FEE_RECEIVER_FACTOR = hashString("POSITION_FEE_RECEIVER_FACTOR");
@@ -114,6 +128,14 @@ export const IS_ADL_ENABLED = hashString("IS_ADL_ENABLED");
 export const FUNDING_FACTOR = hashString("FUNDING_FACTOR");
 export const FUNDING_EXPONENT_FACTOR = hashString("FUNDING_EXPONENT_FACTOR");
 
+export const SAVED_FUNDING_FACTOR_PER_SECOND = hashString("SAVED_FUNDING_FACTOR_PER_SECOND");
+export const FUNDING_INCREASE_FACTOR_PER_SECOND = hashString("FUNDING_INCREASE_FACTOR_PER_SECOND");
+export const FUNDING_DECREASE_FACTOR_PER_SECOND = hashString("FUNDING_DECREASE_FACTOR_PER_SECOND");
+export const MIN_FUNDING_FACTOR_PER_SECOND = hashString("MIN_FUNDING_FACTOR_PER_SECOND");
+export const MAX_FUNDING_FACTOR_PER_SECOND = hashString("MAX_FUNDING_FACTOR_PER_SECOND");
+export const THRESHOLD_FOR_STABLE_FUNDING = hashString("THRESHOLD_FOR_STABLE_FUNDING");
+export const THRESHOLD_FOR_DECREASE_FUNDING = hashString("THRESHOLD_FOR_DECREASE_FUNDING");
+
 export const FUNDING_FEE_AMOUNT_PER_SIZE = hashString("FUNDING_FEE_AMOUNT_PER_SIZE");
 export const CLAIMABLE_FUNDING_AMOUNT_PER_SIZE = hashString("CLAIMABLE_FUNDING_AMOUNT_PER_SIZE");
 export const FUNDING_UPDATED_AT = hashString("FUNDING_UPDATED_AT");
@@ -142,8 +164,13 @@ export const CUMULATIVE_BORROWING_FACTOR_UPDATED_AT = hashString("CUMULATIVE_BOR
 export const VIRTUAL_TOKEN_ID = hashString("VIRTUAL_TOKEN_ID");
 export const VIRTUAL_MARKET_ID = hashString("VIRTUAL_MARKET_ID");
 
-const VIRTUAL_INVENTORY_FOR_SWAPS = hashString("VIRTUAL_INVENTORY_FOR_SWAPS");
-const VIRTUAL_INVENTORY_FOR_POSITIONS = hashString("VIRTUAL_INVENTORY_FOR_POSITIONS");
+export const VIRTUAL_INVENTORY_FOR_SWAPS = hashString("VIRTUAL_INVENTORY_FOR_SWAPS");
+export const VIRTUAL_INVENTORY_FOR_POSITIONS = hashString("VIRTUAL_INVENTORY_FOR_POSITIONS");
+
+export const MAX_ALLOWED_SUBACCOUNT_ACTION_COUNT = hashString("MAX_ALLOWED_SUBACCOUNT_ACTION_COUNT");
+export const SUBACCOUNT_ACTION_COUNT = hashString("SUBACCOUNT_ACTION_COUNT");
+export const SUBACCOUNT_AUTO_TOP_UP_AMOUNT = hashString("SUBACCOUNT_AUTO_TOP_UP_AMOUNT");
+export const SUBACCOUNT_CREATE_ORDER_ACTION = hashString("SUBACCOUNT_CREATE_ORDER_ACTION");
 
 export function accountDepositListKey(account) {
   return hashData(["bytes32", "address"], [ACCOUNT_DEPOSIT_LIST, account]);
@@ -161,8 +188,16 @@ export function accountOrderListKey(account) {
   return hashData(["bytes32", "address"], [ACCOUNT_ORDER_LIST, account]);
 }
 
+export function subaccountListKey(account) {
+  return hashData(["bytes32", "address"], [SUBACCOUNT_LIST, account]);
+}
+
 export function isMarketDisabledKey(market) {
   return hashData(["bytes32", "address"], [IS_MARKET_DISABLED, market]);
+}
+
+export function minMarketTokensForFirstDeposit(market) {
+  return hashData(["bytes32", "address"], [MIN_MARKET_TOKENS_FOR_FIRST_DEPOSIT, market]);
 }
 
 export function createDepositFeatureDisabledKey(contract) {
@@ -243,6 +278,14 @@ export function priceFeedHeartbeatDurationKey(token: string) {
   return hashData(["bytes32", "address"], [PRICE_FEED_HEARTBEAT_DURATION, token]);
 }
 
+export function realtimeFeedIdKey(token: string) {
+  return hashData(["bytes32", "address"], [REALTIME_FEED_ID, token]);
+}
+
+export function realtimeFeedMultiplierKey(token: string) {
+  return hashData(["bytes32", "address"], [REALTIME_FEED_MULTIPLIER, token]);
+}
+
 export function stablePriceKey(token: string) {
   return hashData(["bytes32", "address"], [STABLE_PRICE, token]);
 }
@@ -298,12 +341,32 @@ export function maxPoolAmountKey(market: string, token: string) {
   return hashData(["bytes32", "address", "address"], [MAX_POOL_AMOUNT, market, token]);
 }
 
+export function maxPoolAmountForDepositKey(market: string, token: string) {
+  return hashData(["bytes32", "address", "address"], [MAX_POOL_AMOUNT_FOR_DEPOSIT, market, token]);
+}
+
 export function maxOpenInterestKey(market: string, isLong: boolean) {
   return hashData(["bytes32", "address", "bool"], [MAX_OPEN_INTEREST, market, isLong]);
 }
 
 export function positionImpactPoolAmountKey(market: string) {
   return hashData(["bytes32", "address"], [POSITION_IMPACT_POOL_AMOUNT, market]);
+}
+
+export function positionImpactPoolAmountKey(market: string) {
+  return hashData(["bytes32", "address"], [POSITION_IMPACT_POOL_AMOUNT, market]);
+}
+
+export function minPositionImpactPoolAmountKey(market: string) {
+  return hashData(["bytes32", "address"], [MIN_POSITION_IMPACT_POOL_AMOUNT, market]);
+}
+
+export function positionImpactPoolDistributionRateKey(market: string) {
+  return hashData(["bytes32", "address"], [POSITION_IMPACT_POOL_DISTRIBUTION_RATE, market]);
+}
+
+export function positionImpactPoolDistributedAtKey(market: string) {
+  return hashData(["bytes32", "address"], [POSITION_IMPACT_POOL_DISTRIBUTED_AT, market]);
 }
 
 export function swapImpactPoolAmountKey(market: string, token: string) {
@@ -360,6 +423,34 @@ export function fundingFactorKey(market: string) {
 
 export function fundingExponentFactorKey(market: string) {
   return hashData(["bytes32", "address"], [FUNDING_EXPONENT_FACTOR, market]);
+}
+
+export function savedFundingFactorPerSecondKey(market: string) {
+  return hashData(["bytes32", "address"], [SAVED_FUNDING_FACTOR_PER_SECOND, market]);
+}
+
+export function fundingIncreaseFactorPerSecondKey(market: string) {
+  return hashData(["bytes32", "address"], [FUNDING_INCREASE_FACTOR_PER_SECOND, market]);
+}
+
+export function fundingDecreaseFactorPerSecondKey(market: string) {
+  return hashData(["bytes32", "address"], [FUNDING_DECREASE_FACTOR_PER_SECOND, market]);
+}
+
+export function minFundingFactorPerSecondKey(market: string) {
+  return hashData(["bytes32", "address"], [MIN_FUNDING_FACTOR_PER_SECOND, market]);
+}
+
+export function maxFundingFactorPerSecondKey(market: string) {
+  return hashData(["bytes32", "address"], [MAX_FUNDING_FACTOR_PER_SECOND, market]);
+}
+
+export function thresholdForStableFundingKey(market: string) {
+  return hashData(["bytes32", "address"], [THRESHOLD_FOR_STABLE_FUNDING, market]);
+}
+
+export function thresholdForDecreaseFundingKey(market: string) {
+  return hashData(["bytes32", "address"], [THRESHOLD_FOR_DECREASE_FUNDING, market]);
 }
 
 export function fundingFeeAmountPerSizeKey(market: string, collateralToken: string, isLong: boolean) {
@@ -434,4 +525,22 @@ export function virtualInventoryForSwapsKey(virtualMarketId: string, isLongToken
 
 export function virtualInventoryForPositionsKey(virtualTokenId: string) {
   return hashData(["bytes32", "bytes32"], [VIRTUAL_INVENTORY_FOR_POSITIONS, virtualTokenId]);
+}
+
+export function maxAllowedSubaccountActionCountKey(account: string, subaccount: string, actionType: string) {
+  return hashData(
+    ["bytes32", "address", "address", "bytes32"],
+    [MAX_ALLOWED_SUBACCOUNT_ACTION_COUNT, account, subaccount, actionType]
+  );
+}
+
+export function subaccountActionCountKey(account: string, subaccount: string, actionType: string) {
+  return hashData(
+    ["bytes32", "address", "address", "bytes32"],
+    [SUBACCOUNT_ACTION_COUNT, account, subaccount, actionType]
+  );
+}
+
+export function subaccountAutoTopUpAmountKey(account: string, subaccount: string) {
+  return hashData(["bytes32", "address", "address"], [SUBACCOUNT_AUTO_TOP_UP_AMOUNT, account, subaccount]);
 }

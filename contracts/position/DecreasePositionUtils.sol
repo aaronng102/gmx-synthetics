@@ -94,6 +94,18 @@ library DecreasePositionUtils {
             }
         }
 
+        // cap the initialCollateralDeltaAmount to the position collateralAmount
+        if (params.order.initialCollateralDeltaAmount() > params.position.collateralAmount()) {
+            OrderEventUtils.emitOrderCollateralDeltaAmountAutoUpdated(
+                params.contracts.eventEmitter,
+                params.orderKey,
+                params.order.initialCollateralDeltaAmount(),
+                params.position.collateralAmount()
+            );
+
+            params.order.setInitialCollateralDeltaAmount(params.position.collateralAmount());
+        }
+
         // if the position will be partially decreased then do a check on the
         // remaining collateral amount and update the order attributes if needed
         if (params.order.sizeDeltaUsd() < params.position.sizeInUsd()) {
@@ -194,10 +206,16 @@ library DecreasePositionUtils {
             params.order.setDecreasePositionSwapType(Order.DecreasePositionSwapType.NoSwap);
         }
 
+        MarketUtils.distributePositionImpactPool(
+            params.contracts.dataStore,
+            params.contracts.eventEmitter,
+            params.market.marketToken
+        );
+
         PositionUtils.updateFundingAndBorrowingState(params, cache.prices);
 
         if (BaseOrderUtils.isLiquidationOrder(params.order.orderType())) {
-            (bool isLiquidatable, /* string memory reason */) = PositionUtils.isPositionLiquidatable(
+            (bool isLiquidatable, string memory reason, PositionUtils.IsPositionLiquidatableInfo memory info) = PositionUtils.isPositionLiquidatable(
                 params.contracts.dataStore,
                 params.contracts.referralStorage,
                 params.position,
@@ -207,7 +225,12 @@ library DecreasePositionUtils {
             );
 
             if (!isLiquidatable) {
-                revert Errors.PositionShouldNotBeLiquidated();
+                revert Errors.PositionShouldNotBeLiquidated(
+                    reason,
+                    info.remainingCollateralUsd,
+                    info.minCollateralUsd,
+                    info.minCollateralUsdForLeverage
+                );
             }
         }
 

@@ -26,6 +26,7 @@ import "../utils/Precision.sol";
 // @title MarketUtils
 // @dev Library for market functions
 library MarketUtils {
+    using SignedMath for int256;
     using SafeCast for int256;
     using SafeCast for uint256;
 
@@ -33,6 +34,12 @@ library MarketUtils {
     using Position for Position.Props;
     using Order for Order.Props;
     using Price for Price.Props;
+
+    enum FundingRateChangeType {
+        NoChange,
+        Increase,
+        Decrease
+    }
 
     // @dev struct to store the prices of tokens of a market
     // @param indexTokenPrice price of the market's index token
@@ -55,12 +62,12 @@ library MarketUtils {
     }
 
     // @dev struct for the result of the getNextFundingAmountPerSize call
-    // @param longsPayShorts whether longs pay shorts or shorts pay longs
-    // @param fundingFeeAmountPerSizeDelta funding fee amount per size delta values
-    // @param claimableFundingAmountPerSize claimable funding per size delta values
+    // note that abs(nextSavedFundingFactorPerSecond) may not equal the fundingFactorPerSecond
+    // see getNextFundingFactorPerSecond for more info
     struct GetNextFundingAmountPerSizeResult {
         bool longsPayShorts;
         uint256 fundingFactorPerSecond;
+        int256 nextSavedFundingFactorPerSecond;
 
         PositionType fundingFeeAmountPerSizeDelta;
         PositionType claimableFundingAmountPerSizeDelta;
@@ -74,13 +81,39 @@ library MarketUtils {
 
         uint256 durationInSeconds;
 
-        uint256 diffUsd;
-        uint256 totalOpenInterest;
         uint256 sizeOfLargerSide;
         uint256 fundingUsd;
 
         uint256 fundingUsdForLongCollateral;
         uint256 fundingUsdForShortCollateral;
+    }
+
+    struct GetNextFundingFactorPerSecondCache {
+        uint256 diffUsd;
+        uint256 totalOpenInterest;
+
+        uint256 fundingFactor;
+        uint256 fundingExponentFactor;
+
+        uint256 diffUsdAfterExponent;
+        uint256 diffUsdToOpenInterestFactor;
+
+        int256 savedFundingFactorPerSecond;
+        uint256 savedFundingFactorPerSecondMagnitude;
+
+        int256 nextSavedFundingFactorPerSecond;
+        int256 nextSavedFundingFactorPerSecondWithMinBound;
+    }
+
+    struct FundingConfigCache {
+        uint256 thresholdForStableFunding;
+        uint256 thresholdForDecreaseFunding;
+
+        uint256 fundingIncreaseFactorPerSecond;
+        uint256 fundingDecreaseFactorPerSecond;
+
+        uint256 minFundingFactorPerSecond;
+        uint256 maxFundingFactorPerSecond;
     }
 
     struct GetExpectedMinTokenBalanceCache {
@@ -328,7 +361,7 @@ library MarketUtils {
         result.netPnl = result.longPnl + result.shortPnl;
         result.poolValue = result.poolValue - result.netPnl;
 
-        result.impactPoolAmount = getPositionImpactPoolAmount(dataStore, market.marketToken);
+        result.impactPoolAmount = getNextPositionImpactPoolAmount(dataStore, market.marketToken);
         // use !maximize for pickPrice since the impactPoolUsd is deducted from the poolValue
         uint256 impactPoolUsd = result.impactPoolAmount * indexTokenPrice.pickPrice(!maximize);
 
@@ -457,6 +490,15 @@ library MarketUtils {
     // @return the max amount of tokens that are allowed in the pool
     function getMaxPoolAmount(DataStore dataStore, address market, address token) internal view returns (uint256) {
         return dataStore.getUint(Keys.maxPoolAmountKey(market, token));
+    }
+
+    // @dev get the max amount of tokens allowed to be deposited in the pool
+    // @param dataStore DataStore
+    // @param market the market to check
+    // @param token the token to check
+    // @return the max amount of tokens that can be deposited in the pool
+    function getMaxPoolAmountForDeposit(DataStore dataStore, address market, address token) internal view returns (uint256) {
+        return dataStore.getUint(Keys.maxPoolAmountForDepositKey(market, token));
     }
 
     // @dev get the max open interest allowed for the market
@@ -1015,6 +1057,8 @@ library MarketUtils {
             result.claimableFundingAmountPerSizeDelta.short.shortToken
         );
 
+        setSavedFundingFactorPerSecond(dataStore, market.marketToken, result.nextSavedFundingFactorPerSecond);
+
         dataStore.setUint(Keys.fundingUpdatedAtKey(market.marketToken), Chain.currentTimestamp());
     }
 
@@ -1055,15 +1099,14 @@ library MarketUtils {
         // this should be a rare occurrence so funding fees are not adjusted for this case
         cache.durationInSeconds = getSecondsSinceFundingUpdated(dataStore, market.marketToken);
 
-        cache.diffUsd = Calc.diff(cache.longOpenInterest, cache.shortOpenInterest);
-        cache.totalOpenInterest = cache.longOpenInterest + cache.shortOpenInterest;
         cache.sizeOfLargerSide = cache.longOpenInterest > cache.shortOpenInterest ? cache.longOpenInterest : cache.shortOpenInterest;
 
-        result.fundingFactorPerSecond = getFundingFactorPerSecond(
+        (result.fundingFactorPerSecond, result.longsPayShorts, result.nextSavedFundingFactorPerSecond) = getNextFundingFactorPerSecond(
             dataStore,
             market.marketToken,
-            cache.diffUsd,
-            cache.totalOpenInterest
+            cache.longOpenInterest,
+            cache.shortOpenInterest,
+            cache.durationInSeconds
         );
 
         // for single token markets, if there is $200,000 long open interest
@@ -1096,8 +1139,6 @@ library MarketUtils {
 
         cache.fundingUsd = Precision.applyFactor(cache.sizeOfLargerSide, cache.durationInSeconds * result.fundingFactorPerSecond);
         cache.fundingUsd = cache.fundingUsd / divisor;
-
-        result.longsPayShorts = cache.longOpenInterest > cache.shortOpenInterest;
 
         // split the fundingUsd value by long and short collateral
         // e.g. if the fundingUsd value is $500, and there is $1000 of long open interest using long collateral and $4000 of long open interest
@@ -1187,6 +1228,127 @@ library MarketUtils {
         }
 
         return result;
+    }
+
+    // @dev get the next funding factor per second
+    // in case the minFundingFactorPerSecond is not zero, and the long / short skew has flipped
+    // if orders are being created frequently it is possible that the minFundingFactorPerSecond prevents
+    // the nextSavedFundingFactorPerSecond from being decreased fast enough for the sign to eventually flip
+    // if it is bound by minFundingFactorPerSecond
+    // for that reason, only the nextFundingFactorPerSecond is bound by minFundingFactorPerSecond
+    // and the nextSavedFundingFactorPerSecond is not bound by minFundingFactorPerSecond
+    // @return nextFundingFactorPerSecond, longsPayShorts, nextSavedFundingFactorPerSecond
+    function getNextFundingFactorPerSecond(
+        DataStore dataStore,
+        address market,
+        uint256 longOpenInterest,
+        uint256 shortOpenInterest,
+        uint256 durationInSeconds
+    ) internal view returns (uint256, bool, int256) {
+        GetNextFundingFactorPerSecondCache memory cache;
+
+        cache.diffUsd = Calc.diff(longOpenInterest, shortOpenInterest);
+        cache.totalOpenInterest = longOpenInterest + shortOpenInterest;
+
+        if (cache.diffUsd == 0) { return (0, true, 0); }
+
+        if (cache.totalOpenInterest == 0) {
+            revert Errors.UnableToGetFundingFactorEmptyOpenInterest();
+        }
+
+        cache.fundingExponentFactor = getFundingExponentFactor(dataStore, market);
+
+        cache.diffUsdAfterExponent = Precision.applyExponentFactor(cache.diffUsd, cache.fundingExponentFactor);
+        cache.diffUsdToOpenInterestFactor = Precision.toFactor(cache.diffUsdAfterExponent, cache.totalOpenInterest);
+
+        FundingConfigCache memory configCache;
+        configCache.fundingIncreaseFactorPerSecond = dataStore.getUint(Keys.fundingIncreaseFactorPerSecondKey(market));
+
+        if (configCache.fundingIncreaseFactorPerSecond == 0) {
+            cache.fundingFactor = getFundingFactor(dataStore, market);
+
+            // if there is no fundingIncreaseFactorPerSecond then return the static fundingFactor based on open interest difference
+            return (
+                Precision.applyFactor(cache.diffUsdToOpenInterestFactor, cache.fundingFactor),
+                longOpenInterest > shortOpenInterest,
+                0
+            );
+        }
+
+        // if the savedFundingFactorPerSecond is positive then longs pay shorts
+        // if the savedFundingFactorPerSecond is negative then shorts pay longs
+        cache.savedFundingFactorPerSecond = getSavedFundingFactorPerSecond(dataStore, market);
+        cache.savedFundingFactorPerSecondMagnitude = cache.savedFundingFactorPerSecond.abs();
+
+        configCache.thresholdForStableFunding = dataStore.getUint(Keys.thresholdForStableFundingKey(market));
+        configCache.thresholdForDecreaseFunding = dataStore.getUint(Keys.thresholdForDecreaseFundingKey(market));
+
+        // set the default of nextSavedFundingFactorPerSecond as the savedFundingFactorPerSecond
+        cache.nextSavedFundingFactorPerSecond = cache.savedFundingFactorPerSecond;
+
+        // the default will be NoChange
+        FundingRateChangeType fundingRateChangeType;
+
+        bool isSkewTheSameDirectionAsFunding = (cache.savedFundingFactorPerSecond > 0 && longOpenInterest > shortOpenInterest) || (cache.savedFundingFactorPerSecond < 0 && shortOpenInterest > longOpenInterest);
+
+        if (isSkewTheSameDirectionAsFunding) {
+            if (cache.diffUsdToOpenInterestFactor > configCache.thresholdForStableFunding) {
+                fundingRateChangeType = FundingRateChangeType.Increase;
+            } else if (cache.diffUsdToOpenInterestFactor < configCache.thresholdForDecreaseFunding) {
+                fundingRateChangeType = FundingRateChangeType.Decrease;
+            }
+        } else {
+            // if the skew has changed, then the funding should increase in the opposite direction
+            fundingRateChangeType = FundingRateChangeType.Increase;
+        }
+
+        if (fundingRateChangeType == FundingRateChangeType.Increase) {
+            // increase funding rate
+            int256 increaseValue = Precision.applyFactor(cache.diffUsdToOpenInterestFactor, configCache.fundingIncreaseFactorPerSecond).toInt256() * durationInSeconds.toInt256();
+
+            // if there are more longs than shorts, then the savedFundingFactorPerSecond should increase
+            // otherwise the savedFundingFactorPerSecond should increase in the opposite direction / decrease
+            if (longOpenInterest < shortOpenInterest) {
+                increaseValue = -increaseValue;
+            }
+
+            cache.nextSavedFundingFactorPerSecond = cache.savedFundingFactorPerSecond + increaseValue;
+        }
+
+        if (fundingRateChangeType == FundingRateChangeType.Decrease && cache.savedFundingFactorPerSecondMagnitude != 0) {
+            configCache.fundingDecreaseFactorPerSecond = dataStore.getUint(Keys.fundingDecreaseFactorPerSecondKey(market));
+            uint256 decreaseValue = configCache.fundingDecreaseFactorPerSecond * durationInSeconds;
+
+            if (cache.savedFundingFactorPerSecondMagnitude <= decreaseValue) {
+                // set the funding factor to 1 or -1 depending on the original savedFundingFactorPerSecond
+                cache.nextSavedFundingFactorPerSecond = cache.savedFundingFactorPerSecond / cache.savedFundingFactorPerSecondMagnitude.toInt256();
+            } else {
+                // reduce the original savedFundingFactorPerSecond while keeping the original sign of the savedFundingFactorPerSecond
+                int256 sign = cache.savedFundingFactorPerSecond / cache.savedFundingFactorPerSecondMagnitude.toInt256();
+                cache.nextSavedFundingFactorPerSecond = (cache.savedFundingFactorPerSecondMagnitude - decreaseValue).toInt256() * sign;
+            }
+        }
+
+        configCache.minFundingFactorPerSecond = dataStore.getUint(Keys.minFundingFactorPerSecondKey(market));
+        configCache.maxFundingFactorPerSecond = dataStore.getUint(Keys.maxFundingFactorPerSecondKey(market));
+
+        cache.nextSavedFundingFactorPerSecond = Calc.boundMagnitude(
+            cache.nextSavedFundingFactorPerSecond,
+            0,
+            configCache.maxFundingFactorPerSecond
+        );
+
+        cache.nextSavedFundingFactorPerSecondWithMinBound = Calc.boundMagnitude(
+            cache.nextSavedFundingFactorPerSecond,
+            configCache.minFundingFactorPerSecond,
+            configCache.maxFundingFactorPerSecond
+        );
+
+        return (
+            cache.nextSavedFundingFactorPerSecondWithMinBound.abs(),
+            cache.nextSavedFundingFactorPerSecondWithMinBound > 0,
+            cache.nextSavedFundingFactorPerSecond
+        );
     }
 
     // store funding values as token amount per (Precision.FLOAT_PRECISION_SQRT / Precision.FLOAT_PRECISION) of USD size
@@ -1326,6 +1488,23 @@ library MarketUtils {
 
         if (poolAmount > maxPoolAmount) {
             revert Errors.MaxPoolAmountExceeded(poolAmount, maxPoolAmount);
+        }
+    }
+
+    // @dev validate that the pool amount is within the max allowed deposit amount
+    // @param dataStore DataStore
+    // @param market the market to check
+    // @param token the token to check
+    function validatePoolAmountForDeposit(
+        DataStore dataStore,
+        Market.Props memory market,
+        address token
+    ) internal view {
+        uint256 poolAmount = getPoolAmount(dataStore, market, token);
+        uint256 maxPoolAmount = getMaxPoolAmountForDeposit(dataStore, market.marketToken, token);
+
+        if (poolAmount > maxPoolAmount) {
+            revert Errors.MaxPoolAmountForDepositExceeded(poolAmount, maxPoolAmount);
         }
     }
 
@@ -1875,6 +2054,21 @@ library MarketUtils {
         return dataStore.getUint(Keys.fundingFactorKey(market));
     }
 
+    // @dev get the saved funding factor for a market
+    // @param dataStore DataStore
+    // @param market the market to check
+    // @return the saved funding factor for a market
+    function getSavedFundingFactorPerSecond(DataStore dataStore, address market) internal view returns (int256) {
+        return dataStore.getInt(Keys.savedFundingFactorPerSecondKey(market));
+    }
+
+    // @dev set the saved funding factor
+    // @param dataStore DataStore
+    // @param market the market to set the funding factor for
+    function setSavedFundingFactorPerSecond(DataStore dataStore, address market, int256 value) internal returns (int256) {
+        return dataStore.setInt(Keys.savedFundingFactorPerSecondKey(market), value);
+    }
+
     // @dev get the funding exponent factor for a market
     // @param dataStore DataStore
     // @param market the market to check
@@ -1972,39 +2166,6 @@ library MarketUtils {
         uint256 updatedAt = dataStore.getUint(Keys.fundingUpdatedAtKey(market));
         if (updatedAt == 0) { return 0; }
         return Chain.currentTimestamp() - updatedAt;
-    }
-
-    // @dev get the funding factor per second
-    // @param dataStore DataStore
-    // @param market the market to check
-    // @param diffUsd the difference between the long and short open interest
-    // @param totalOpenInterest the total open interest
-    function getFundingFactorPerSecond(
-        DataStore dataStore,
-        address market,
-        uint256 diffUsd,
-        uint256 totalOpenInterest
-    ) internal view returns (uint256) {
-        // if there is a stable funding factor then use that instead of the open interest
-        // dependent funding factor
-        uint256 stableFundingFactor = dataStore.getUint(Keys.stableFundingFactorKey(market));
-
-        if (stableFundingFactor > 0) { return stableFundingFactor; }
-
-        if (diffUsd == 0) { return 0; }
-
-        if (totalOpenInterest == 0) {
-            revert Errors.UnableToGetFundingFactorEmptyOpenInterest();
-        }
-
-        uint256 fundingFactor = getFundingFactor(dataStore, market);
-
-        uint256 fundingExponentFactor = getFundingExponentFactor(dataStore, market);
-        uint256 diffUsdAfterExponent = Precision.applyExponentFactor(diffUsd, fundingExponentFactor);
-
-        uint256 diffUsdToOpenInterestFactor = Precision.toFactor(diffUsdAfterExponent, totalOpenInterest);
-
-        return Precision.applyFactor(diffUsdToOpenInterestFactor, fundingFactor);
     }
 
     // @dev get the borrowing factor for a market
@@ -2218,6 +2379,74 @@ library MarketUtils {
         uint256 borrowingFactor = getBorrowingFactor(dataStore, market.marketToken, isLong);
 
         return Precision.applyFactor(reservedUsdToPoolFactor, borrowingFactor);
+    }
+
+    function distributePositionImpactPool(
+        DataStore dataStore,
+        EventEmitter eventEmitter,
+        address market
+    ) external {
+        (uint256 distributionAmount, uint256 nextPositionImpactPoolAmount) = getPendingPositionImpactPoolDistributionAmount(dataStore, market);
+
+        applyDeltaToPositionImpactPool(
+            dataStore,
+            eventEmitter,
+            market,
+            -distributionAmount.toInt256()
+        );
+
+        MarketEventUtils.emitPositionImpactPoolDistributed(
+            eventEmitter,
+            market,
+            distributionAmount,
+            nextPositionImpactPoolAmount
+        );
+
+        dataStore.setUint(Keys.positionImpactPoolDistributedAtKey(market), Chain.currentTimestamp());
+    }
+
+    function getNextPositionImpactPoolAmount(
+        DataStore dataStore,
+        address market
+    ) internal view returns (uint256) {
+        (/* uint256 distributionAmount */, uint256 nextPositionImpactPoolAmount) = getPendingPositionImpactPoolDistributionAmount(dataStore, market);
+
+        return nextPositionImpactPoolAmount;
+    }
+
+    // @return (distributionAmount, nextPositionImpactPoolAmount)
+    function getPendingPositionImpactPoolDistributionAmount(
+        DataStore dataStore,
+        address market
+    ) internal view returns (uint256, uint256) {
+        uint256 positionImpactPoolAmount = getPositionImpactPoolAmount(dataStore, market);
+        if (positionImpactPoolAmount == 0) { return (0, positionImpactPoolAmount); }
+
+        uint256 distributionRate = dataStore.getUint(Keys.positionImpactPoolDistributionRateKey(market));
+        if (distributionRate == 0) { return (0, positionImpactPoolAmount); }
+
+        uint256 minPositionImpactPoolAmount = dataStore.getUint(Keys.minPositionImpactPoolAmountKey(market));
+        if (positionImpactPoolAmount <= minPositionImpactPoolAmount) { return (0, positionImpactPoolAmount); }
+
+        uint256 maxDistributionAmount = positionImpactPoolAmount - minPositionImpactPoolAmount;
+
+        uint256 durationInSeconds = getSecondsSincePositionImpactPoolDistributed(dataStore, market);
+        uint256 distributionAmount = Precision.applyFactor(durationInSeconds, distributionRate);
+
+        if (distributionAmount > maxDistributionAmount) {
+            distributionAmount = maxDistributionAmount;
+        }
+
+        return (distributionAmount, positionImpactPoolAmount - distributionAmount);
+    }
+
+    function getSecondsSincePositionImpactPoolDistributed(
+        DataStore dataStore,
+        address market
+    ) internal view returns (uint256) {
+        uint256 distributedAt = dataStore.getUint(Keys.positionImpactPoolDistributedAtKey(market));
+        if (distributedAt == 0) { return 0; }
+        return Chain.currentTimestamp() - distributedAt;
     }
 
     // @dev get the total pending borrowing fees

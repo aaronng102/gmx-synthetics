@@ -244,6 +244,8 @@ export async function getOracleParams({
   minPrices,
   maxPrices,
   signers,
+  realtimeFeedTokens,
+  realtimeFeedData,
   priceFeedTokens,
 }) {
   const signerInfo = getSignerInfo(signerIndexes);
@@ -300,5 +302,36 @@ export async function getOracleParams({
     compactedMaxPricesIndexes: getCompactedPriceIndexes(maxPriceIndexes),
     signatures,
     priceFeedTokens,
+    realtimeFeedTokens,
+    realtimeFeedData,
   };
+}
+
+export function encodeRealtimeData(data) {
+  const {
+    feedId,
+    observationsTimestamp,
+    median,
+    bid,
+    ask,
+    blocknumberUpperBound,
+    upperBlockhash,
+    blocknumberLowerBound,
+    currentBlockTimestamp,
+  } = data;
+
+  return ethers.utils.defaultAbiCoder.encode(
+    ["bytes32", "uint32", "int192", "int192", "int192", "uint64", "bytes32", "uint64", "uint64"],
+    [
+      feedId,
+      observationsTimestamp,
+      median,
+      bid,
+      ask,
+      blocknumberUpperBound,
+      upperBlockhash,
+      blocknumberLowerBound,
+      currentBlockTimestamp,
+    ]
+  );
 }

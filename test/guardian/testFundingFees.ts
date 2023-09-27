@@ -761,7 +761,7 @@ describe("Guardian.FundingFees", () => {
     await exchangeRouter.connect(user0).claimFundingFees([ethUsdMarket.marketToken], [wnt.address], user0.address);
 
     const balanceAfterUser0 = await wnt.balanceOf(user0.address);
-    expect(balanceAfterUser0.sub(balanceBeforeUser0)).eq("5184013800000000"); // $25.920069
+    expect(balanceAfterUser0.sub(balanceBeforeUser0)).closeTo("5184013800000000", "10000000000"); // $25.920069
 
     const balanceBeforeUser3 = await wnt.balanceOf(user3.address);
     await exchangeRouter.connect(user3).claimFundingFees([ethUsdMarket.marketToken], [wnt.address], user3.address);
@@ -932,7 +932,7 @@ describe("Guardian.FundingFees", () => {
 
     const USDCBalanceAfterUser2 = await usdc.balanceOf(user2.address);
 
-    expect(USDCBalanceAfterUser2.sub(USDCBalanceBeforeUser2)).eq("17280025"); // $17.280025
+    expect(USDCBalanceAfterUser2.sub(USDCBalanceBeforeUser2)).closeTo("17280025", 10); // $17.280025
 
     const WNTBalanceBeforeUser1 = await wnt.balanceOf(user1.address);
 

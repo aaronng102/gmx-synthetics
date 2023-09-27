@@ -17,13 +17,20 @@ library MarketEventUtils {
     using EventUtils for EventUtils.BytesItems;
     using EventUtils for EventUtils.StringItems;
 
+    // this event is emitted before a deposit or withdrawal
+    // it provides information of the pool state so that the amount
+    // of market tokens minted or amount withdrawn from the pool can be checked
     function emitMarketPoolValueInfo(
         EventEmitter eventEmitter,
+        bytes32 tradeKey,
         address market,
         MarketPoolValueInfo.Props memory props,
         uint256 marketTokensSupply
     ) external {
         EventUtils.EventLogData memory eventData;
+
+        eventData.bytes32Items.initItems(1);
+        eventData.bytes32Items.setItem(0, "tradeKey", tradeKey);
 
         eventData.addressItems.initItems(1);
         eventData.addressItems.setItem(0, "market", market);
@@ -46,6 +53,51 @@ library MarketEventUtils {
 
         eventEmitter.emitEventLog1(
             "MarketPoolValueInfo",
+            Cast.toBytes32(market),
+            eventData
+        );
+    }
+
+    // this event is emitted after a deposit or withdrawal
+    // it provides information of the updated pool state
+    // note that the pool state can change even without a deposit / withdrawal
+    // e.g. borrowing fees can increase the pool's value with time, trader pnl
+    // will change as index prices change
+    function emitMarketPoolValueUpdated(
+        EventEmitter eventEmitter,
+        bytes32 actionType,
+        bytes32 tradeKey,
+        address market,
+        MarketPoolValueInfo.Props memory props,
+        uint256 marketTokensSupply
+    ) external {
+        EventUtils.EventLogData memory eventData;
+
+        eventData.bytes32Items.initItems(2);
+        eventData.bytes32Items.setItem(0, "actionType", actionType);
+        eventData.bytes32Items.setItem(1, "tradeKey", tradeKey);
+
+        eventData.addressItems.initItems(1);
+        eventData.addressItems.setItem(0, "market", market);
+
+        eventData.intItems.initItems(4);
+        eventData.intItems.setItem(0, "poolValue", props.poolValue);
+        eventData.intItems.setItem(1, "longPnl", props.longPnl);
+        eventData.intItems.setItem(2, "shortPnl", props.shortPnl);
+        eventData.intItems.setItem(3, "netPnl", props.netPnl);
+
+        eventData.uintItems.initItems(8);
+        eventData.uintItems.setItem(0, "longTokenAmount", props.longTokenAmount);
+        eventData.uintItems.setItem(1, "shortTokenAmount", props.shortTokenAmount);
+        eventData.uintItems.setItem(2, "longTokenUsd", props.longTokenUsd);
+        eventData.uintItems.setItem(3, "shortTokenUsd", props.shortTokenUsd);
+        eventData.uintItems.setItem(4, "totalBorrowingFees", props.totalBorrowingFees);
+        eventData.uintItems.setItem(5, "borrowingFeePoolFactor", props.borrowingFeePoolFactor);
+        eventData.uintItems.setItem(6, "impactPoolAmount", props.impactPoolAmount);
+        eventData.uintItems.setItem(7, "marketTokensSupply", marketTokensSupply);
+
+        eventEmitter.emitEventLog1(
+            "MarketPoolValueUpdated",
             Cast.toBytes32(market),
             eventData
         );
@@ -98,6 +150,28 @@ library MarketEventUtils {
 
         eventEmitter.emitEventLog1(
             "SwapImpactPoolAmountUpdated",
+            Cast.toBytes32(market),
+            eventData
+        );
+    }
+
+    function emitPositionImpactPoolDistributed(
+        EventEmitter eventEmitter,
+        address market,
+        uint256 distributionAmount,
+        uint256 nextPositionImpactPoolAmount
+    ) external {
+        EventUtils.EventLogData memory eventData;
+
+        eventData.addressItems.initItems(1);
+        eventData.addressItems.setItem(0, "market", market);
+
+        eventData.uintItems.initItems(2);
+        eventData.uintItems.setItem(0, "distributionAmount", distributionAmount);
+        eventData.uintItems.setItem(1, "nextPositionImpactPoolAmount", nextPositionImpactPoolAmount);
+
+        eventEmitter.emitEventLog1(
+            "PositionImpactPoolDistributed",
             Cast.toBytes32(market),
             eventData
         );

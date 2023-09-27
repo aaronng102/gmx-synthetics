@@ -108,7 +108,15 @@ contract OrderHandler is IOrderHandler, BaseOrderHandler {
 
         OrderStoreUtils.set(dataStore, key, order);
 
-        OrderEventUtils.emitOrderUpdated(eventEmitter, key, sizeDeltaUsd, acceptablePrice, triggerPrice, minOutputAmount);
+        OrderEventUtils.emitOrderUpdated(
+            eventEmitter,
+            key,
+            order.account(),
+            sizeDeltaUsd,
+            acceptablePrice,
+            triggerPrice,
+            minOutputAmount
+        );
     }
 
     /**
@@ -160,9 +168,11 @@ contract OrderHandler is IOrderHandler, BaseOrderHandler {
         globalNonReentrant
     {
         OracleUtils.SetPricesParams memory oracleParams;
+        Order.Props memory order = OrderStoreUtils.get(dataStore, key);
 
         this._executeOrder(
             key,
+            order,
             oracleParams,
             msg.sender
         );
@@ -180,10 +190,16 @@ contract OrderHandler is IOrderHandler, BaseOrderHandler {
         withOraclePrices(oracle, dataStore, eventEmitter, oracleParams)
     {
         uint256 startingGas = gasleft();
+
+        Order.Props memory order = OrderStoreUtils.get(dataStore, key);
+        uint256 estimatedGasLimit = GasUtils.estimateExecuteOrderGasLimit(dataStore, order);
+        GasUtils.validateExecutionGas(dataStore, startingGas, estimatedGasLimit);
+
         uint256 executionGas = GasUtils.getExecutionGas(dataStore, startingGas);
 
         try this._executeOrder{ gas: executionGas }(
             key,
+            order,
             oracleParams,
             msg.sender
         ) {
@@ -199,6 +215,7 @@ contract OrderHandler is IOrderHandler, BaseOrderHandler {
     // @param startingGas the starting gas
     function _executeOrder(
         bytes32 key,
+        Order.Props memory order,
         OracleUtils.SetPricesParams memory oracleParams,
         address keeper
     ) external onlySelf {
@@ -206,6 +223,7 @@ contract OrderHandler is IOrderHandler, BaseOrderHandler {
 
         BaseOrderUtils.ExecuteOrderParams memory params = _getExecuteOrderParams(
             key,
+            order,
             oracleParams,
             keeper,
             startingGas,
@@ -234,6 +252,8 @@ contract OrderHandler is IOrderHandler, BaseOrderHandler {
         uint256 startingGas,
         bytes memory reasonBytes
     ) internal {
+        GasUtils.validateExecutionErrorGas(dataStore, reasonBytes);
+
         bytes4 errorSelector = ErrorUtils.getErrorSelectorFromData(reasonBytes);
 
         Order.Props memory order = OrderStoreUtils.get(dataStore, key);

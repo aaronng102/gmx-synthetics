@@ -99,13 +99,14 @@ library ExecuteDepositUtils {
         int256 priceImpactUsd;
     }
 
+    address public constant RECEIVER_FOR_FIRST_DEPOSIT = address(1);
+
     // @dev executes a deposit
     // @param params ExecuteDepositParams
-    function executeDeposit(ExecuteDepositParams memory params) external {
+    function executeDeposit(ExecuteDepositParams memory params, Deposit.Props memory deposit) external {
         // 63/64 gas is forwarded to external calls, reduce the startingGas to account for this
         params.startingGas -= gasleft() / 63;
 
-        Deposit.Props memory deposit = DepositStoreUtils.get(params.dataStore, params.key);
         DepositStoreUtils.remove(params.dataStore, params.key, deposit.account());
 
         ExecuteDepositCache memory cache;
@@ -122,7 +123,15 @@ library ExecuteDepositUtils {
 
         Market.Props memory market = MarketUtils.getEnabledMarket(params.dataStore, deposit.market());
 
+        _validateFirstDeposit(params, deposit, market);
+
         MarketUtils.MarketPrices memory prices = MarketUtils.getMarketPrices(params.oracle, market);
+
+        MarketUtils.distributePositionImpactPool(
+            params.dataStore,
+            params.eventEmitter,
+            market.marketToken
+        );
 
         // deposits should improve the pool state but it should be checked if
         // the max pnl factor for deposits is exceeded as this would lead to the
@@ -223,9 +232,31 @@ library ExecuteDepositUtils {
         DepositEventUtils.emitDepositExecuted(
             params.eventEmitter,
             params.key,
+            deposit.account(),
             cache.longTokenAmount,
             cache.shortTokenAmount,
             cache.receivedMarketTokens
+        );
+
+        MarketPoolValueInfo.Props memory poolValueInfo = MarketUtils.getPoolValueInfo(
+            params.dataStore,
+            market,
+            prices.indexTokenPrice,
+            prices.longTokenPrice,
+            prices.shortTokenPrice,
+            Keys.MAX_PNL_FACTOR_FOR_DEPOSITS,
+            true
+        );
+
+        uint256 marketTokensSupply = MarketUtils.getMarketTokenSupply(MarketToken(payable(market.marketToken)));
+
+        MarketEventUtils.emitMarketPoolValueUpdated(
+            params.eventEmitter,
+            keccak256(abi.encode("DEPOSIT")),
+            params.key,
+            market.marketToken,
+            poolValueInfo,
+            marketTokensSupply
         );
 
         EventUtils.EventLogData memory eventData;
@@ -279,11 +310,12 @@ library ExecuteDepositUtils {
 
         SwapPricingUtils.emitSwapFeesCollected(
             params.eventEmitter,
-             _params.market.marketToken,
-             _params.tokenIn,
-             _params.tokenInPrice.min,
-             "deposit",
-             fees
+            params.key,
+            _params.market.marketToken,
+            _params.tokenIn,
+            _params.tokenInPrice.min,
+            Keys.DEPOSIT_FEE_TYPE,
+            fees
          );
 
         uint256 mintAmount;
@@ -312,6 +344,7 @@ library ExecuteDepositUtils {
 
         MarketEventUtils.emitMarketPoolValueInfo(
             params.eventEmitter,
+            params.key,
             _params.market.marketToken,
             poolValueInfo,
             marketTokensSupply
@@ -391,6 +424,12 @@ library ExecuteDepositUtils {
                 positiveImpactAmount
             );
 
+            MarketUtils.validatePoolAmountForDeposit(
+                params.dataStore,
+                _params.market,
+                _params.tokenOut
+            );
+
             MarketUtils.validatePoolAmount(
                 params.dataStore,
                 _params.market,
@@ -428,6 +467,12 @@ library ExecuteDepositUtils {
             _params.market,
             _params.tokenIn,
             (fees.amountAfterFees + fees.feeAmountForPool).toInt256()
+        );
+
+        MarketUtils.validatePoolAmountForDeposit(
+            params.dataStore,
+            _params.market,
+            _params.tokenIn
         );
 
         MarketUtils.validatePoolAmount(
@@ -479,5 +524,34 @@ library ExecuteDepositUtils {
         MarketUtils.validateMarketTokenBalance(params.dataStore, swapPathMarkets);
 
         return outputAmount;
+    }
+
+    // this method validates that a specified minimum number of market tokens are locked
+    // this can be used to help ensure a minimum amount of liquidity for a market
+    // this also helps to prevent manipulation of the market token price by the first depositor
+    // since it may be possible to deposit a small amount of tokens on the first deposit
+    // to cause a high market token price due to rounding of the amount of tokens minted
+    function _validateFirstDeposit(
+        ExecuteDepositParams memory params,
+        Deposit.Props memory deposit,
+        Market.Props memory market
+    ) internal view {
+        uint256 initialMarketTokensSupply = MarketUtils.getMarketTokenSupply(MarketToken(payable(market.marketToken)));
+
+        // return if this is not the first deposit
+        if (initialMarketTokensSupply != 0) { return; }
+
+        uint256 minMarketTokens = params.dataStore.getUint(Keys.minMarketTokensForFirstDepositKey(market.marketToken));
+
+        // return if there is no minMarketTokens requirement
+        if (minMarketTokens == 0) { return; }
+
+        if (deposit.receiver() != RECEIVER_FOR_FIRST_DEPOSIT) {
+            revert Errors.InvalidReceiverForFirstDeposit(deposit.receiver(), RECEIVER_FOR_FIRST_DEPOSIT);
+        }
+
+        if (deposit.minMarketTokens() < minMarketTokens) {
+            revert Errors.InvalidMinMarketTokensForFirstDeposit(deposit.minMarketTokens(), minMarketTokens);
+        }
     }
 }

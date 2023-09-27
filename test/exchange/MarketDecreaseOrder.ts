@@ -119,8 +119,7 @@ describe("Exchange.MarketDecreaseOrder", () => {
       },
     });
 
-    const block1 = await provider.getBlock();
-    const block0 = await provider.getBlock(block1.number - 1);
+    const block0 = await provider.getBlock();
 
     await expect(
       handleOrder(fixture, {
@@ -132,7 +131,7 @@ describe("Exchange.MarketDecreaseOrder", () => {
           minPrices: [expandDecimals(5000, 4), expandDecimals(1, 6)],
           maxPrices: [expandDecimals(5000, 4), expandDecimals(1, 6)],
           precisions: [8, 18],
-          oracleBlocks: [block0, block1],
+          oracleBlocks: [block0, block0],
         },
       })
     ).to.be.revertedWithCustomError(errorsContract, "OracleBlockNumberNotWithinRange");
@@ -316,5 +315,31 @@ describe("Exchange.MarketDecreaseOrder", () => {
 
     expect(await getAccountPositionCount(dataStore, user0.address)).eq(0);
     expect(await getOrderCount(dataStore)).eq(0);
+  });
+
+  it("automatically adjusts initialCollateralDeltaAmount", async () => {
+    await handleOrder(fixture, {
+      create: {
+        market: ethUsdMarket,
+        initialCollateralToken: wnt,
+        initialCollateralDeltaAmount: expandDecimals(10, 18),
+        sizeDeltaUsd: decimalToFloat(200 * 1000),
+        acceptablePrice: expandDecimals(5050, 12),
+        orderType: OrderType.MarketIncrease,
+        isLong: true,
+      },
+    });
+
+    await handleOrder(fixture, {
+      create: {
+        market: ethUsdMarket,
+        initialCollateralToken: wnt,
+        initialCollateralDeltaAmount: expandDecimals(10 + 1, 18),
+        sizeDeltaUsd: decimalToFloat(190 * 1000),
+        acceptablePrice: expandDecimals(4950, 12),
+        orderType: OrderType.MarketDecrease,
+        isLong: true,
+      },
+    });
   });
 });

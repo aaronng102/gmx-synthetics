@@ -39,13 +39,52 @@ library GasUtils {
         return dataStore.getUint(Keys.MIN_HANDLE_EXECUTION_ERROR_GAS);
     }
 
+    function getMinHandleExecutionErrorGasToForward(DataStore dataStore) internal view returns (uint256) {
+        return dataStore.getUint(Keys.MIN_HANDLE_EXECUTION_ERROR_GAS_TO_FORWARD);
+    }
+
+    function getMinAdditionalGasForExecution(DataStore dataStore) internal view returns (uint256) {
+        return dataStore.getUint(Keys.MIN_ADDITIONAL_GAS_FOR_EXECUTION);
+    }
+
     function getExecutionGas(DataStore dataStore, uint256 startingGas) internal view returns (uint256) {
-        uint256 minHandleErrorGas = GasUtils.getMinHandleExecutionErrorGas(dataStore);
-        if (startingGas < minHandleErrorGas) {
-            revert Errors.InsufficientExecutionGas(startingGas, minHandleErrorGas);
+        uint256 minHandleExecutionErrorGasToForward = GasUtils.getMinHandleExecutionErrorGasToForward(dataStore);
+        if (startingGas < minHandleExecutionErrorGasToForward) {
+            revert Errors.InsufficientExecutionGasForErrorHandling(startingGas, minHandleExecutionErrorGasToForward);
         }
 
-        return startingGas - minHandleErrorGas;
+        return startingGas - minHandleExecutionErrorGasToForward;
+    }
+
+    function validateExecutionGas(DataStore dataStore, uint256 startingGas, uint256 estimatedGasLimit) internal view {
+        uint256 minAdditionalGasForExecution = getMinAdditionalGasForExecution(dataStore);
+        if (startingGas < estimatedGasLimit + minAdditionalGasForExecution) {
+            revert Errors.InsufficientExecutionGas(startingGas, estimatedGasLimit, minAdditionalGasForExecution);
+        }
+    }
+
+    // a minimum amount of gas is required to be left for cancellation
+    // to prevent potential blocking of cancellations by malicious contracts using e.g. large revert reasons
+    //
+    // during the estimateGas call by keepers, an insufficient amount of gas may be estimated
+    // the amount estimated may be insufficient for execution but sufficient for cancellaton
+    // this could lead to invalid cancellations due to insufficient gas used by keepers
+    //
+    // to help prevent this, out of gas errors are attempted to be caught and reverted for estimateGas calls
+    //
+    // a malicious user could cause the estimateGas call of a keeper to fail, in which case the keeper could
+    // still attempt to execute the transaction with a reasonable gas limit
+    function validateExecutionErrorGas(DataStore dataStore, bytes memory reasonBytes) internal view {
+        // skip the validation if the execution did not fail due to an out of gas error
+        // also skip the validation if this is not invoked in an estimateGas call (tx.origin != address(0))
+        if (reasonBytes.length != 0 || tx.origin != address(0)) { return; }
+
+        uint256 gas = gasleft();
+        uint256 minHandleExecutionErrorGas = getMinHandleExecutionErrorGas(dataStore);
+
+        if (gas < minHandleExecutionErrorGas) {
+            revert Errors.InsufficientHandleExecutionErrorGas(gas, minHandleExecutionErrorGas);
+        }
     }
 
     // @dev pay the keeper the execution fee and refund any excess amount
@@ -197,11 +236,12 @@ library GasUtils {
     // @param order the order to estimate the gas limit for
     function estimateExecuteDecreaseOrderGasLimit(DataStore dataStore, Order.Props memory order) internal view returns (uint256) {
         uint256 gasPerSwap = dataStore.getUint(Keys.singleSwapGasLimitKey());
+        uint256 swapCount = order.swapPath().length;
         if (order.decreasePositionSwapType() != Order.DecreasePositionSwapType.NoSwap) {
-            gasPerSwap += 1;
+            swapCount += 1;
         }
 
-        return dataStore.getUint(Keys.decreaseOrderGasLimitKey()) + gasPerSwap * order.swapPath().length + order.callbackGasLimit();
+        return dataStore.getUint(Keys.decreaseOrderGasLimitKey()) + gasPerSwap * swapCount + order.callbackGasLimit();
     }
 
     // @dev the estimated gas limit for swap orders

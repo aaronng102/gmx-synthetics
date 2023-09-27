@@ -18,6 +18,22 @@ const processGeneralConfig = async ({ generalConfig, handleConfig }) => {
 
   await handleConfig(
     "uint",
+    keys.MIN_HANDLE_EXECUTION_ERROR_GAS_TO_FORWARD,
+    "0x",
+    generalConfig.minHandleExecutionErrorGasToForward,
+    `minHandleExecutionErrorGasToForward`
+  );
+
+  await handleConfig(
+    "uint",
+    keys.MIN_ADDITIONAL_GAS_FOR_EXECUTION,
+    "0x",
+    generalConfig.minAdditionalGasForExecution,
+    `minAdditionalGasForExecution`
+  );
+
+  await handleConfig(
+    "uint",
     keys.MAX_CALLBACK_GAS_LIMIT,
     "0x",
     generalConfig.maxCallbackGasLimit,
@@ -196,7 +212,13 @@ async function main() {
 
   console.log(`updating ${multicallWriteParams.length} params`);
   console.log("multicallWriteParams", multicallWriteParams);
-  await config.multicall(multicallWriteParams);
+
+  if (process.env.WRITE === "true") {
+    const tx = await config.multicall(multicallWriteParams);
+    console.log(`tx sent: ${tx.hash}`);
+  } else {
+    console.log("NOTE: executed in read-only mode, no transactions were sent");
+  }
 }
 
 main()

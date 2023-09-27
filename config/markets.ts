@@ -18,6 +18,9 @@ export type BaseMarketConfig = {
   maxLongTokenPoolAmount: BigNumberish;
   maxShortTokenPoolAmount: BigNumberish;
 
+  maxLongTokenPoolAmountForDeposit: BigNumberish;
+  maxShortTokenPoolAmountForDeposit: BigNumberish;
+
   maxOpenInterestForLongs: BigNumberish;
   maxOpenInterestForShorts: BigNumberish;
 
@@ -99,6 +102,9 @@ const baseMarketConfig: BaseMarketConfig = {
   maxLongTokenPoolAmount: expandDecimals(1_000_000_000, 18),
   maxShortTokenPoolAmount: expandDecimals(1_000_000_000, 18),
 
+  maxLongTokenPoolAmountForDeposit: expandDecimals(1_000_000_000, 18),
+  maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000_000, 18),
+
   maxOpenInterestForLongs: decimalToFloat(1_000_000_000),
   maxOpenInterestForShorts: decimalToFloat(1_000_000_000),
 
@@ -143,8 +149,9 @@ const baseMarketConfig: BaseMarketConfig = {
 
   minCollateralUsd: decimalToFloat(1, 0), // 1 USD
 
-  borrowingFactorForLongs: decimalToFloat(5, 9), // 0.000000003, 0.0000003% / second, 15.77% per year if the pool is 100% utilized
-  borrowingFactorForShorts: decimalToFloat(5, 9), // 0.000000003, 0.0000003% / second, 15.77% per year if the pool is 100% utilized
+  // factor in open interest reserve factor 80%
+  borrowingFactorForLongs: decimalToFloat(625, 11), // 0.00000000625 * 80% = 0.000000005, 0.0000005% / second, 15.77% per year if the pool is 100% utilized
+  borrowingFactorForShorts: decimalToFloat(625, 11), // 0.00000000625 * 80% = 0.000000005, 0.0000005% / second, 15.77% per year if the pool is 100% utilized
 
   borrowingExponentFactorForLongs: decimalToFloat(1),
   borrowingExponentFactorForShorts: decimalToFloat(1),
@@ -184,8 +191,8 @@ const stablecoinSwapMarketConfig: Partial<SpotMarketConfig> & {
   swapFeeFactorForPositiveImpact: decimalToFloat(1, 4), // 0.01%,
   swapFeeFactorForNegativeImpact: decimalToFloat(1, 4), // 0.01%,
 
-  negativeSwapImpactFactor: decimalToFloat(1, 10), // 0.01% for 1,000,000 USD of imbalance
-  positiveSwapImpactFactor: decimalToFloat(1, 10), // 0.01% for 1,000,000 USD of imbalance
+  negativeSwapImpactFactor: decimalToFloat(5, 10), // 0.01% for 200,000 USD of imbalance
+  positiveSwapImpactFactor: decimalToFloat(5, 10), // 0.01% for 200,000 USD of imbalance
 };
 
 const hardhatBaseMarketConfig: Partial<MarketConfig> = {
@@ -202,6 +209,9 @@ const hardhatBaseMarketConfig: Partial<MarketConfig> = {
 
   maxLongTokenPoolAmount: expandDecimals(1 * 1000 * 1000 * 1000, 18),
   maxShortTokenPoolAmount: expandDecimals(1 * 1000 * 1000 * 1000, 18),
+
+  maxLongTokenPoolAmountForDeposit: expandDecimals(1 * 1000 * 1000 * 1000, 18),
+  maxShortTokenPoolAmountForDeposit: expandDecimals(1 * 1000 * 1000 * 1000, 18),
 
   maxOpenInterestForLongs: decimalToFloat(1 * 1000 * 1000 * 1000),
   maxOpenInterestForShorts: decimalToFloat(1 * 1000 * 1000 * 1000),
@@ -240,11 +250,14 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(350, 8),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(350, 8),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(2, 10), // 0.05% for 2,500,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(2, 10), // 0.05% for 2,500,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 50,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 10),
@@ -257,14 +270,17 @@ const config: {
 
       ...baseMarketConfig,
 
-      maxLongTokenPoolAmount: expandDecimals(5000, 18),
-      maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+      maxLongTokenPoolAmount: expandDecimals(10_000, 18),
+      maxShortTokenPoolAmount: expandDecimals(17_500_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(17_500_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), //0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for 4,166,667 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for 4,166,667 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(2, 10), // 0.05% for 2,500,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(2, 10), // 0.05% for 2,500,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 50,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 10),
@@ -281,16 +297,23 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(500, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(500, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      // use the swap impact factor for WETH
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      // the swap impact factor is for WETH-stablecoin swaps
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 5,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 9),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(2, 9),
+
+      // factor in open interest reserve factor 50%
+      borrowingFactorForLongs: decimalToFloat(15, 9), // 0.000000015 * 50% =  0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(15, 9), // 0,000000015 * 50% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "DOGE", longToken: "WETH", shortToken: "USDC" },
@@ -303,16 +326,23 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(500, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(500, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      // use the swap impact factor for WETH
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      // the swap impact factor is for WETH-stablecoin swaps
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 2,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(5, 9),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(5, 9),
+
+      // factor in open interest reserve factor 50%
+      borrowingFactorForLongs: decimalToFloat(15, 9), // 0.000000015 * 50% =  0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(15, 9), // 0,000000015 * 50% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "SOL", longToken: "SOL", shortToken: "USDC" },
@@ -324,15 +354,22 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(50_000, 9),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(50_000, 9),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 2,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(5, 9),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(5, 9),
+
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "LTC", longToken: "WETH", shortToken: "USDC" },
@@ -345,16 +382,23 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(500, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(500, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      // use the swap impact factor for WETH
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      // the swap impact factor is for WETH-stablecoin swaps
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 4,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(25, 10),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(25, 10),
+
+      // factor in open interest reserve factor 50%
+      borrowingFactorForLongs: decimalToFloat(15, 9), // 0.000000015 * 50% =  0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(15, 9), // 0,000000015 * 50% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "UNI", longToken: "UNI", shortToken: "USDC" },
@@ -366,15 +410,22 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(200_000, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(3, 8), // 0.3% for 100,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(15, 9), // 0.15% for 100,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(200_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(3, 8), // 0.3% for 100,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(15, 9), // 0.15% for 100,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(3, 8), // 0.05% for 16,667 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(15, 9), // 0.05% for 33,333 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(3, 8), // 0.05% for 16,667 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(15, 9), // 0.05% for 33,333 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 250,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(4, 8),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(4, 8),
+
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "LINK", longToken: "LINK", shortToken: "USDC" },
@@ -383,18 +434,25 @@ const config: {
 
       ...baseMarketConfig,
 
-      maxLongTokenPoolAmount: expandDecimals(200_000, 18),
-      maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
+      maxLongTokenPoolAmount: expandDecimals(227_000, 18), // 1,500,000 USD at $6,60
+      maxShortTokenPoolAmount: expandDecimals(1_500_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(227_000, 18), // 1,500,000 USD at $6,60
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_500_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 1,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(1, 8),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(1, 8),
+
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { indexToken: "ARB", longToken: "ARB", shortToken: "USDC" },
@@ -403,18 +461,25 @@ const config: {
 
       ...baseMarketConfig,
 
-      maxLongTokenPoolAmount: expandDecimals(1_000_000, 18),
-      maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
+      maxLongTokenPoolAmount: expandDecimals(1_500_000, 18),
+      maxShortTokenPoolAmount: expandDecimals(1_250_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(1_500_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_250_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 1,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(1, 8),
       minCollateralFactorForOpenInterestMultiplierShort: decimalToFloat(1, 8),
+
+      // factor in open interest reserve factor 80%
+      borrowingFactorForLongs: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23,65% per year if the pool is 100% utilized
+      borrowingFactorForShorts: decimalToFloat(94, 10), // 0.0000000094 * 80% = 0.0000000075, 0.00000075% / second, 23.65% per year if the pool is 100% utilized
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDC.e" },
@@ -424,6 +489,15 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+
+      negativeSwapImpactFactor: decimalToFloat(15, 10), // 0.01% for 66,667 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(15, 10), // 0.01% for 66,667 USD of imbalance
+
+      swapFeeFactorForPositiveImpact: decimalToFloat(5, 5), // 0.005%,
+      swapFeeFactorForNegativeImpact: decimalToFloat(2, 4), // 0.02%,
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDT" },
@@ -433,6 +507,15 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+
+      swapFeeFactorForPositiveImpact: decimalToFloat(5, 5), // 0.005%,
+      swapFeeFactorForNegativeImpact: decimalToFloat(2, 4), // 0.02%,
     },
     {
       tokens: { longToken: "USDC", shortToken: "DAI" },
@@ -442,6 +525,15 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 18),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 18),
+
+      negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.01% for 20,000 USD of imbalance
+
+      swapFeeFactorForPositiveImpact: decimalToFloat(5, 5), // 0.005%,
+      swapFeeFactorForNegativeImpact: decimalToFloat(2, 4), // 0.02%,
     },
   ],
   avalanche: [
@@ -455,11 +547,14 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(350, 8),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(350, 8),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), //0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 50,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 10),
@@ -475,11 +570,14 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(5000, 18),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(5000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.3% for 25,000,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(12, 11), //0.3% for 25,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 50,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 10),
@@ -496,12 +594,15 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(75_000, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(75_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      // use the swap impact factor for WAVAX
-      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      // the swap impact factor is for WAVAX-stablecoin swaps
+      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 5,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 9),
@@ -518,12 +619,15 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(75_000, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(75_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      // use the swap impact factor for WAVAX
-      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      // the swap impact factor is for WAVAX-stablecoin swaps
+      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 2,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(5, 9),
@@ -539,11 +643,14 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(50_000, 9),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(50_000, 9),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 2,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(5, 9),
@@ -560,12 +667,15 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(75_000, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.3% for 375,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.15% for 375,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(75_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      // use the swap impact factor for WAVAX
-      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+
+      // the swap impact factor is for WAVAX-stablecoin swaps
+      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 4,000,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(25, 10),
@@ -581,11 +691,14 @@ const config: {
       maxLongTokenPoolAmount: expandDecimals(200_000, 18),
       maxShortTokenPoolAmount: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000,000 USD of imbalance
+      maxLongTokenPoolAmountForDeposit: expandDecimals(200_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.3% for 300,000 USD of imbalance
-      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.15% for 300,000,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+
+      negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
+      positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
 
       // minCollateralFactor of 0.01 (1%) when open interest is 500,000 USD
       minCollateralFactorForOpenInterestMultiplierLong: decimalToFloat(2, 8),
@@ -599,6 +712,9 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDC.e" },
@@ -608,6 +724,9 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
     },
     {
       tokens: { longToken: "USDT", shortToken: "USDT.e" },
@@ -617,6 +736,9 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
     },
     {
       tokens: { longToken: "USDC", shortToken: "DAI.e" },
@@ -626,6 +748,9 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10_000_000, 6),
       maxShortTokenPoolAmount: expandDecimals(10_000_000, 18),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 18),
     },
   ],
   arbitrumGoerli: [
@@ -648,6 +773,7 @@ const config: {
     },
     {
       tokens: { indexToken: "SOL", longToken: "WBTC", shortToken: "USDC" },
+      isDisabled: false,
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDT" },
@@ -655,12 +781,12 @@ const config: {
     },
     { tokens: { indexToken: "DOGE", longToken: "WBTC", shortToken: "DAI" } },
     { tokens: { indexToken: "LINK", longToken: "WBTC", shortToken: "DAI" } },
-    { tokens: { indexToken: "BNB", longToken: "WBTC", shortToken: "DAI" } },
-    { tokens: { indexToken: "ADA", longToken: "WBTC", shortToken: "DAI" } },
-    { tokens: { indexToken: "TRX", longToken: "WBTC", shortToken: "DAI" } },
-    { tokens: { indexToken: "MATIC", longToken: "WBTC", shortToken: "USDC" } },
-    { tokens: { indexToken: "DOT", longToken: "WBTC", shortToken: "USDC" } },
-    { tokens: { indexToken: "UNI", longToken: "WBTC", shortToken: "USDC" } },
+    { tokens: { indexToken: "BNB", longToken: "WBTC", shortToken: "DAI" }, isDisabled: true },
+    { tokens: { indexToken: "ADA", longToken: "WBTC", shortToken: "DAI" }, isDisabled: true },
+    { tokens: { indexToken: "TRX", longToken: "WBTC", shortToken: "DAI" }, isDisabled: true },
+    { tokens: { indexToken: "MATIC", longToken: "WBTC", shortToken: "USDC" }, isDisabled: true },
+    { tokens: { indexToken: "DOT", longToken: "WBTC", shortToken: "USDC" }, isDisabled: true },
+    { tokens: { indexToken: "UNI", longToken: "WBTC", shortToken: "USDC" }, isDisabled: true },
     {
       tokens: {
         indexToken: "TEST",
@@ -682,6 +808,10 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10, 18),
       maxShortTokenPoolAmount: expandDecimals(300_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(300_000, 6),
+      isDisabled: false,
     },
 
     {
@@ -762,6 +892,9 @@ const config: {
 
       maxLongTokenPoolAmount: expandDecimals(10, 18),
       maxShortTokenPoolAmount: expandDecimals(300_000, 6),
+
+      maxLongTokenPoolAmountForDeposit: expandDecimals(10, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(300_000, 6),
     },
 
     {

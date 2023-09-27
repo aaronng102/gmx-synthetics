@@ -16,6 +16,7 @@ import "../withdrawal/Withdrawal.sol";
 import "../withdrawal/WithdrawalVault.sol";
 import "../withdrawal/WithdrawalStoreUtils.sol";
 import "../withdrawal/WithdrawalUtils.sol";
+import "../withdrawal/ExecuteWithdrawalUtils.sol";
 import "../oracle/Oracle.sol";
 import "../oracle/OracleModule.sol";
 
@@ -101,10 +102,16 @@ contract WithdrawalHandler is IWithdrawalHandler, GlobalReentrancyGuard, RoleMod
         withOraclePrices(oracle, dataStore, eventEmitter, oracleParams)
     {
         uint256 startingGas = gasleft();
+
+        Withdrawal.Props memory withdrawal = WithdrawalStoreUtils.get(dataStore, key);
+        uint256 estimatedGasLimit = GasUtils.estimateExecuteWithdrawalGasLimit(dataStore, withdrawal);
+        GasUtils.validateExecutionGas(dataStore, startingGas, estimatedGasLimit);
+
         uint256 executionGas = GasUtils.getExecutionGas(dataStore, startingGas);
 
         try this._executeWithdrawal{ gas: executionGas }(
             key,
+            withdrawal,
             oracleParams,
             msg.sender
         ) {
@@ -131,9 +138,11 @@ contract WithdrawalHandler is IWithdrawalHandler, GlobalReentrancyGuard, RoleMod
     {
 
         OracleUtils.SetPricesParams memory oracleParams;
+        Withdrawal.Props memory withdrawal = WithdrawalStoreUtils.get(dataStore, key);
 
         this._executeWithdrawal(
             key,
+            withdrawal,
             oracleParams,
             msg.sender
         );
@@ -145,6 +154,7 @@ contract WithdrawalHandler is IWithdrawalHandler, GlobalReentrancyGuard, RoleMod
     // @param startingGas the starting gas
     function _executeWithdrawal(
         bytes32 key,
+        Withdrawal.Props memory withdrawal,
         OracleUtils.SetPricesParams memory oracleParams,
         address keeper
     ) external onlySelf {
@@ -152,17 +162,27 @@ contract WithdrawalHandler is IWithdrawalHandler, GlobalReentrancyGuard, RoleMod
 
         FeatureUtils.validateFeature(dataStore, Keys.executeWithdrawalFeatureDisabledKey(address(this)));
 
+        OracleUtils.RealtimeFeedReport[] memory reports = oracle.validateRealtimeFeeds(
+            dataStore,
+            oracleParams.realtimeFeedTokens,
+            oracleParams.realtimeFeedData
+        );
+
         uint256[] memory minOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMinOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Min
         );
 
         uint256[] memory maxOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMaxOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Max
         );
 
-        WithdrawalUtils.ExecuteWithdrawalParams memory params = WithdrawalUtils.ExecuteWithdrawalParams(
+        ExecuteWithdrawalUtils.ExecuteWithdrawalParams memory params = ExecuteWithdrawalUtils.ExecuteWithdrawalParams(
             dataStore,
             eventEmitter,
             withdrawalVault,
@@ -174,7 +194,7 @@ contract WithdrawalHandler is IWithdrawalHandler, GlobalReentrancyGuard, RoleMod
             startingGas
         );
 
-        WithdrawalUtils.executeWithdrawal(params);
+        ExecuteWithdrawalUtils.executeWithdrawal(params, withdrawal);
     }
 
     function _handleWithdrawalError(
@@ -182,6 +202,8 @@ contract WithdrawalHandler is IWithdrawalHandler, GlobalReentrancyGuard, RoleMod
         uint256 startingGas,
         bytes memory reasonBytes
     ) internal {
+        GasUtils.validateExecutionErrorGas(dataStore, reasonBytes);
+
         bytes4 errorSelector = ErrorUtils.getErrorSelectorFromData(reasonBytes);
 
         if (

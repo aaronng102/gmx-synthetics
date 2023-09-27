@@ -11,6 +11,8 @@ const func = createDeployFunction({
     "PositionUtils",
     "OrderStoreUtils",
     "ReaderUtils",
+    "ReaderDepositUtils",
+    "ReaderWithdrawalUtils",
     "ReaderPricingUtils",
   ],
 });

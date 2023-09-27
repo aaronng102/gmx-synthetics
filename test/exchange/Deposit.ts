@@ -17,6 +17,7 @@ import { getExecuteParams } from "../../utils/exchange";
 import { errorsContract } from "../../utils/error";
 import * as keys from "../../utils/keys";
 import { TOKEN_ORACLE_TYPES } from "../../utils/oracle";
+import { prices } from "../../utils/prices";
 
 describe("Exchange.Deposit", () => {
   const { provider } = ethers;
@@ -28,6 +29,7 @@ describe("Exchange.Deposit", () => {
     dataStore,
     depositVault,
     depositHandler,
+    depositStoreUtils,
     ethUsdMarket,
     ethUsdSpotOnlyMarket,
     ethUsdSingleTokenMarket,
@@ -45,6 +47,7 @@ describe("Exchange.Deposit", () => {
       dataStore,
       depositVault,
       depositHandler,
+      depositStoreUtils,
       ethUsdMarket,
       ethUsdSpotOnlyMarket,
       ethUsdSingleTokenMarket,
@@ -248,6 +251,8 @@ describe("Exchange.Deposit", () => {
         compactedMaxPricesIndexes: [],
         signatures: [],
         priceFeedTokens: [],
+        realtimeFeedTokens: [],
+        realtimeFeedData: [],
       })
     )
       .to.be.revertedWithCustomError(errorsContract, "Unauthorized")
@@ -316,6 +321,46 @@ describe("Exchange.Deposit", () => {
         gasUsageLabel: "executeDeposit",
       })
     ).to.be.revertedWithCustomError(errorsContract, "EmptyDeposit");
+
+    await dataStore.setUint(keys.maxPoolAmountKey(ethUsdMarket.marketToken, wnt.address), expandDecimals(1, 18));
+
+    await handleDeposit(fixture, {
+      create: {
+        longTokenAmount: expandDecimals(2, 18),
+        shortTokenAmount: expandDecimals(10_000, 6),
+      },
+      execute: {
+        expectedCancellationReason: "MaxPoolAmountExceeded",
+      },
+    });
+
+    await dataStore.setUint(keys.maxPoolAmountKey(ethUsdMarket.marketToken, wnt.address), expandDecimals(20, 18));
+    await dataStore.setUint(
+      keys.maxPoolAmountForDepositKey(ethUsdMarket.marketToken, wnt.address),
+      expandDecimals(1, 18)
+    );
+
+    await handleDeposit(fixture, {
+      create: {
+        longTokenAmount: expandDecimals(2, 18),
+        shortTokenAmount: expandDecimals(10_000, 6),
+      },
+      execute: {
+        expectedCancellationReason: "MaxPoolAmountForDepositExceeded",
+      },
+    });
+
+    await dataStore.setUint(keys.minMarketTokensForFirstDeposit(ethUsdMarket.marketToken), expandDecimals(1, 18));
+
+    await handleDeposit(fixture, {
+      create: {
+        longTokenAmount: expandDecimals(1, 17),
+        shortTokenAmount: expandDecimals(500, 6),
+      },
+      execute: {
+        expectedCancellationReason: "MaxPoolAmountForDepositExceeded",
+      },
+    });
   });
 
   it("executeDeposit with swap", async () => {
@@ -400,9 +445,18 @@ describe("Exchange.Deposit", () => {
   });
 
   it("_executeDeposit", async () => {
+    const depositStoreUtilsTest = await deployContract("DepositStoreUtilsTest", [], {
+      libraries: {
+        DepositStoreUtils: depositStoreUtils.address,
+      },
+    });
+
+    const emptyDeposit = await depositStoreUtilsTest.getEmptyDeposit();
+
     await expect(
       depositHandler.connect(user0)._executeDeposit(
         HashZero,
+        emptyDeposit,
         {
           signerInfo: 0,
           tokens: [],
@@ -416,6 +470,8 @@ describe("Exchange.Deposit", () => {
           compactedMaxPricesIndexes: [],
           signatures: [],
           priceFeedTokens: [],
+          realtimeFeedTokens: [],
+          realtimeFeedData: [],
         },
         user0.address
       )
@@ -536,6 +592,28 @@ describe("Exchange.Deposit", () => {
     await dataStore.setUint(keys.swapImpactFactorKey(ethUsdMarket.marketToken, false), decimalToFloat(1, 8));
     await dataStore.setUint(keys.swapImpactFactorKey(ethUsdMarket.marketToken, true), decimalToFloat(5, 9));
     await dataStore.setUint(keys.swapImpactExponentFactorKey(ethUsdMarket.marketToken), decimalToFloat(2, 0));
+
+    expect(
+      await reader.getDepositAmountOut(
+        dataStore.address,
+        ethUsdMarket,
+        prices.ethUsdMarket,
+        expandDecimals(10, 18), // longTokenAmount
+        0, // shortTokenAmount
+        AddressZero
+      )
+    ).eq("49975000000000000000000");
+
+    expect(
+      await reader.getDepositAmountOut(
+        dataStore.address,
+        ethUsdMarket,
+        prices.ethUsdMarket,
+        expandDecimals(10, 18), // longTokenAmount
+        expandDecimals(1000, 6), // shortTokenAmount
+        AddressZero
+      )
+    ).eq("50975989999313725490000");
 
     await handleDeposit(fixture, {
       create: {

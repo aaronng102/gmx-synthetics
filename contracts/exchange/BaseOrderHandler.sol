@@ -55,22 +55,19 @@ contract BaseOrderHandler is GlobalReentrancyGuard, RoleModule, OracleModule {
     }
 
     // @dev get the BaseOrderUtils.ExecuteOrderParams to execute an order
-    // @param key the key of the order to execute
-    // @param oracleParams OracleUtils.SetPricesParams
-    // @param keeper the keeper executing the order
-    // @param startingGas the starting gas
     // @return the required BaseOrderUtils.ExecuteOrderParams params to execute the order
     function _getExecuteOrderParams(
         bytes32 key,
+        Order.Props memory order,
         OracleUtils.SetPricesParams memory oracleParams,
         address keeper,
         uint256 startingGas,
         Order.SecondaryOrderType secondaryOrderType
-    ) internal view returns (BaseOrderUtils.ExecuteOrderParams memory) {
+    ) internal returns (BaseOrderUtils.ExecuteOrderParams memory) {
         BaseOrderUtils.ExecuteOrderParams memory params;
 
         params.key = key;
-        params.order = OrderStoreUtils.get(dataStore, key);
+        params.order = order;
         params.swapPathMarkets = MarketUtils.getSwapPathMarkets(
             dataStore,
             params.order.swapPath()
@@ -83,14 +80,24 @@ contract BaseOrderHandler is GlobalReentrancyGuard, RoleModule, OracleModule {
         params.contracts.swapHandler = swapHandler;
         params.contracts.referralStorage = referralStorage;
 
+        OracleUtils.RealtimeFeedReport[] memory reports = oracle.validateRealtimeFeeds(
+            dataStore,
+            oracleParams.realtimeFeedTokens,
+            oracleParams.realtimeFeedData
+        );
+
         params.minOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMinOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Min
         );
 
         params.maxOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMaxOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Max
         );
 
         if (params.order.market() != address(0)) {

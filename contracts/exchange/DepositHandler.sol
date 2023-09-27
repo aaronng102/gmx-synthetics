@@ -100,10 +100,16 @@ contract DepositHandler is IDepositHandler, GlobalReentrancyGuard, RoleModule, O
         withOraclePrices(oracle, dataStore, eventEmitter, oracleParams)
     {
         uint256 startingGas = gasleft();
+
+        Deposit.Props memory deposit = DepositStoreUtils.get(dataStore, key);
+        uint256 estimatedGasLimit = GasUtils.estimateExecuteDepositGasLimit(dataStore, deposit);
+        GasUtils.validateExecutionGas(dataStore, startingGas, estimatedGasLimit);
+
         uint256 executionGas = GasUtils.getExecutionGas(dataStore, startingGas);
 
         try this._executeDeposit{ gas: executionGas }(
             key,
+            deposit,
             oracleParams,
             msg.sender
         ) {
@@ -128,11 +134,12 @@ contract DepositHandler is IDepositHandler, GlobalReentrancyGuard, RoleModule, O
         withSimulatedOraclePrices(oracle, params)
         globalNonReentrant
     {
-
         OracleUtils.SetPricesParams memory oracleParams;
+        Deposit.Props memory deposit = DepositStoreUtils.get(dataStore, key);
 
         this._executeDeposit(
             key,
+            deposit,
             oracleParams,
             msg.sender
         );
@@ -144,6 +151,7 @@ contract DepositHandler is IDepositHandler, GlobalReentrancyGuard, RoleModule, O
     // @param startingGas the starting gas
     function _executeDeposit(
         bytes32 key,
+        Deposit.Props memory deposit,
         OracleUtils.SetPricesParams memory oracleParams,
         address keeper
     ) external onlySelf {
@@ -151,14 +159,24 @@ contract DepositHandler is IDepositHandler, GlobalReentrancyGuard, RoleModule, O
 
         FeatureUtils.validateFeature(dataStore, Keys.executeDepositFeatureDisabledKey(address(this)));
 
+        OracleUtils.RealtimeFeedReport[] memory reports = oracle.validateRealtimeFeeds(
+            dataStore,
+            oracleParams.realtimeFeedTokens,
+            oracleParams.realtimeFeedData
+        );
+
         uint256[] memory minOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMinOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Min
         );
 
         uint256[] memory maxOracleBlockNumbers = OracleUtils.getUncompactedOracleBlockNumbers(
             oracleParams.compactedMaxOracleBlockNumbers,
-            oracleParams.tokens.length
+            oracleParams.tokens.length,
+            reports,
+            OracleUtils.OracleBlockNumberType.Max
         );
 
         ExecuteDepositUtils.ExecuteDepositParams memory params = ExecuteDepositUtils.ExecuteDepositParams(
@@ -173,7 +191,7 @@ contract DepositHandler is IDepositHandler, GlobalReentrancyGuard, RoleModule, O
             startingGas
         );
 
-        ExecuteDepositUtils.executeDeposit(params);
+        ExecuteDepositUtils.executeDeposit(params, deposit);
     }
 
     // @dev handle errors from deposits
@@ -185,6 +203,8 @@ contract DepositHandler is IDepositHandler, GlobalReentrancyGuard, RoleModule, O
         uint256 startingGas,
         bytes memory reasonBytes
     ) internal {
+        GasUtils.validateExecutionErrorGas(dataStore, reasonBytes);
+
         bytes4 errorSelector = ErrorUtils.getErrorSelectorFromData(reasonBytes);
 
         if (

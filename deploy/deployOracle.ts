@@ -8,8 +8,16 @@ const constructorContracts = ["RoleStore", "OracleStore"];
 const func = createDeployFunction({
   contractName: "Oracle",
   dependencyNames: constructorContracts,
-  getDeployArgs: async ({ dependencyContracts }) => {
-    return constructorContracts.map((dependencyName) => dependencyContracts[dependencyName].address);
+  getDeployArgs: async ({ dependencyContracts, network, gmx, get }) => {
+    const oracleConfig = await gmx.getOracle();
+    let realtimeFeedVerifierAddress = oracleConfig.realtimeFeedVerifier;
+    if (network.name === "hardhat") {
+      const realtimeFeedVerifier = await get("MockRealtimeFeedVerifier");
+      realtimeFeedVerifierAddress = realtimeFeedVerifier.address;
+    }
+    return constructorContracts
+      .map((dependencyName) => dependencyContracts[dependencyName].address)
+      .concat(realtimeFeedVerifierAddress);
   },
   afterDeploy: async ({ deployedContract, gmx }) => {
     const oracleConfig = await gmx.getOracle();
@@ -30,6 +38,6 @@ const func = createDeployFunction({
   },
 });
 
-func.dependencies = func.dependencies.concat("Tokens");
+func.dependencies = func.dependencies.concat(["Tokens", "MockRealtimeFeedVerifier"]);
 
 export default func;

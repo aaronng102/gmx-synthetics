@@ -6,7 +6,6 @@ export const EXCLUDED_CONFIG_KEYS = {
   ACCOUNT_ORDER_LIST: true,
   ACCOUNT_POSITION_LIST: true,
   ACCOUNT_WITHDRAWAL_LIST: true,
-  SAVED_CALLBACK_CONTRACT: true,
   AFFILIATE_REWARD: true,
   CLAIMABLE_COLLATERAL_AMOUNT: true,
   CLAIMABLE_COLLATERAL_TIME_DIVISOR: true,
@@ -23,14 +22,17 @@ export const EXCLUDED_CONFIG_KEYS = {
   FUNDING_FEE_AMOUNT_PER_SIZE: true,
   CLAIMABLE_FUNDING_AMOUNT_PER_SIZE: true,
   FUNDING_UPDATED_AT: true,
+  IN_STRICT_PRICE_FEED_MODE: true,
   IS_ADL_ENABLED: true,
   LATEST_ADL_BLOCK: true,
   MARKET_LIST: true,
+  MAX_ALLOWED_SUBACCOUNT_ACTION_COUNT: true,
   MAX_PNL_FACTOR_FOR_TRADERS: true,
   MAX_PNL_FACTOR_FOR_ADL: true,
   MAX_PNL_FACTOR_FOR_DEPOSITS: true,
   MAX_PNL_FACTOR_FOR_WITHDRAWALS: true,
   MIN_ORACLE_SIGNERS: true,
+  MIN_POSITION_IMPACT_POOL_AMOUNT: true,
   NONCE: true,
   OPEN_INTEREST: true,
   OPEN_INTEREST_IN_TOKENS: true,
@@ -38,11 +40,21 @@ export const EXCLUDED_CONFIG_KEYS = {
   POOL_AMOUNT: true,
   POSITION_FEE_TYPE: true,
   POSITION_IMPACT_POOL_AMOUNT: true,
+  POSITION_IMPACT_POOL_DISTRIBUTED_AT: true,
+  POSITION_IMPACT_POOL_DISTRIBUTION_RATE: true,
   POSITION_LIST: true,
   PRICE_FEED: true,
   PRICE_FEED_MULTIPLIER: true,
+  REALTIME_FEED_ID: true,
+  REALTIME_FEED_MULTIPLIER: true,
   REENTRANCY_GUARD_STATUS: true,
+  SAVED_CALLBACK_CONTRACT: true,
+  SAVED_FUNDING_FACTOR_PER_SECOND: true,
   STABLE_PRICE: true,
+  SUBACCOUNT_ACTION_COUNT: true,
+  SUBACCOUNT_AUTO_TOP_UP_AMOUNT: true,
+  SUBACCOUNT_CREATE_ORDER_ACTION: true,
+  SUBACCOUNT_LIST: true,
   SWAP_FEE_TYPE: true,
   SWAP_IMPACT_POOL_AMOUNT: true,
   SWAP_PATH_MARKET_FLAG: true,
@@ -151,12 +163,13 @@ async function appendConfigIfDifferent(
 
   if (compare ? !compare(currentValue, value) : currentValue != value) {
     console.log(
-      "appending config %s %s (%s) to %s, prev: %s",
+      "appending config %s %s (%s) to %s, prev: %s (change %sx)",
       type,
       label,
       key,
       value.toString(),
-      currentValue.toString()
+      currentValue.toString(),
+      (Number(value.toString()) / Number(currentValue.toString())).toFixed(4)
     );
     list.push(config.interface.encodeFunctionData(setMethod, [baseKey, keyData, value]));
   } else {

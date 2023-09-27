@@ -3,11 +3,14 @@ import { decimalToFloat, expandDecimals } from "../utils/math";
 
 export default async function ({ network }: HardhatRuntimeEnvironment) {
   if (network.name === "hardhat") {
+    // Note that this is only for the hardhat config
     return {
       feeReceiver: ethers.constants.AddressZero,
       holdingAddress: ethers.constants.AddressZero,
       maxUiFeeFactor: decimalToFloat(5, 5), // 0.005%
-      minHandleExecutionErrorGas: 1000000,
+      minHandleExecutionErrorGas: 1_200_000,
+      minHandleExecutionErrorGasToForward: 1_000_000,
+      minAdditionalGasForExecution: 1_000_000,
 
       depositGasLimitSingle: 0,
       depositGasLimitMultiple: 0,
@@ -46,7 +49,9 @@ export default async function ({ network }: HardhatRuntimeEnvironment) {
     feeReceiver: "0x43ce1d475e06c65dd879f4ec644b8e0e10ff2b6d",
     holdingAddress: "0x3f59203ea1c66527422998b54287e1efcacbe2c5",
     maxUiFeeFactor: decimalToFloat(2, 4), // 0.0002, 0.02%
-    minHandleExecutionErrorGas: 1_000_000, // measured gas required for an order cancellation: ~600,000
+    minHandleExecutionErrorGas: 1_200_000,
+    minHandleExecutionErrorGasToForward: 1_000_000, // measured gas required for an order cancellation: ~600,000
+    minAdditionalGasForExecution: 1_000_000,
 
     depositGasLimitSingle: 1_500_000,
     depositGasLimitMultiple: 1_800_000,
@@ -85,7 +90,7 @@ export default async function ({ network }: HardhatRuntimeEnvironment) {
       requestExpirationBlockAge: 1200, // about 5 minutes assuming 4 blocks per second
     },
     avalancheFuji: {
-      requestExpirationBlockAge: 200, // about 5 minutes assuming 1 block per 3 seconds
+      requestExpirationBlockAge: 150, // about 5 minutes assuming 1 block per 2 seconds
     },
     arbitrum: {
       requestExpirationBlockAge: 1200, // about 5 minutes assuming 4 blocks per second
@@ -93,7 +98,7 @@ export default async function ({ network }: HardhatRuntimeEnvironment) {
       executionGasFeeBaseAmount: 2_500_000,
     },
     avalanche: {
-      requestExpirationBlockAge: 200, // about 5 minutes assuming 1 block per 3 seconds
+      requestExpirationBlockAge: 150, // about 5 minutes assuming 1 block per 2 seconds
       estimatedGasFeeBaseAmount: 1_000_000,
       executionGasFeeBaseAmount: 1_000_000,
     },
