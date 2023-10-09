@@ -68,26 +68,33 @@ contract GlpMigrator is ReentrancyGuard, RoleModule {
         uint256 mintBurnFeeBasisPoints = glpVault.mintBurnFeeBasisPoints();
         uint256 swapFeeBasisPoints = glpVault.swapFeeBasisPoints();
         uint256 stableSwapFeeBasisPoints = glpVault.stableSwapFeeBasisPoints();
+        uint256 _reducedMintBurnFeeBasisPoints = reducedMintBurnFeeBasisPoints;
 
-        glpTimelock.setSwapFees(
-            address(glpVault),
-            taxBasisPoints,
-            stableTaxBasisPoints,
-            reducedMintBurnFeeBasisPoints,
-            swapFeeBasisPoints,
-            stableSwapFeeBasisPoints
-        );
+        bool shouldUpdateFees = _reducedMintBurnFeeBasisPoints != mintBurnFeeBasisPoints;
+
+        if (shouldUpdateFees) {
+            glpTimelock.setSwapFees(
+                address(glpVault),
+                taxBasisPoints,
+                stableTaxBasisPoints,
+                _reducedMintBurnFeeBasisPoints,
+                swapFeeBasisPoints,
+                stableSwapFeeBasisPoints
+            );
+        }
 
         _;
 
-        glpTimelock.setSwapFees(
-            address(glpVault),
-            taxBasisPoints,
-            stableTaxBasisPoints,
-            mintBurnFeeBasisPoints,
-            swapFeeBasisPoints,
-            stableSwapFeeBasisPoints
-        );
+        if (shouldUpdateFees) {
+            glpTimelock.setSwapFees(
+                address(glpVault),
+                taxBasisPoints,
+                stableTaxBasisPoints,
+                mintBurnFeeBasisPoints,
+                swapFeeBasisPoints,
+                stableSwapFeeBasisPoints
+            );
+        }
     }
 
     constructor(
@@ -188,6 +195,7 @@ contract GlpMigrator is ReentrancyGuard, RoleModule {
             // the deposit would fail
             // glp should be adjusted such that only redemptions are allowed so
             // any arbitrage / benefit of doing this should be minimal
+            // glp mint fees should also help to discourage this
             DepositUtils.CreateDepositParams memory depositParams =  DepositUtils.CreateDepositParams(
                 account, // receiver;
                 address(0), // callbackContract;
