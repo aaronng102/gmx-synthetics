@@ -3,22 +3,31 @@ import { getFrameSigner } from "../utils/signer";
 import { contractAt } from "../utils/deploy";
 import { hashString } from "../utils/hash";
 
-const expectedTimelockMethods = ["signalGrantRole", "grantRoleAfterSignal"];
+const expectedTimelockMethods = [
+  "signalGrantRole",
+  "grantRoleAfterSignal",
+  "signalRevokeRole",
+  "revokeRoleAfterSignal",
+];
 
 async function getTimelock({ signer }) {
   const network = hre.network.name;
 
   if (network === "arbitrum") {
-    return await contractAt("Timelock", "0x9d44B89Eb6FB382b712C562DfaFD8825829b422e", signer);
+    return await contractAt("Timelock", "0x62aB76Ed722C507f297f2B97920dCA04518fe274", signer);
   }
 
   if (network === "avalanche") {
-    return await contractAt("Timelock", "0x768c0E31CC87eF5e2c3E2cdB85A4B34148cC63E5", signer);
+    return await contractAt("Timelock", "0x4Db91a1Fa4ba3c75510B2885d7d7da48E0209F38", signer);
   }
 
   throw new Error("Unsupported network");
 }
 
+// update roles in scripts/validateRoles.ts
+// then run scripts/validateRoles.ts, it should output the role changes
+// update rolesToAdd and rolesToRemove here
+// then run e.g. TIMELOCK_METHOD=signalGrantRole npx hardhat run --network arbitrum scripts/updateRoles.ts
 async function main() {
   const signer = await getFrameSigner();
   // NOTE: the existing Timelock needs to be used to grant roles to new contracts including new Timelocks
@@ -91,6 +100,20 @@ async function main() {
     ],
   };
 
+  const rolesToRemove = {
+    arbitrum: [],
+    avalanche: [
+      {
+        role: "CONTROLLER",
+        member: "0x768c0E31CC87eF5e2c3E2cdB85A4B34148cC63E5",
+      },
+      {
+        role: "ROLE_ADMIN",
+        member: "0x768c0E31CC87eF5e2c3E2cdB85A4B34148cC63E5",
+      },
+    ],
+  };
+
   const multicallWriteParams = [];
 
   const timelockMethod = process.env.TIMELOCK_METHOD;
@@ -98,14 +121,34 @@ async function main() {
     throw new Error(`Unexpected TIMELOCK_METHOD: ${timelockMethod}`);
   }
 
-  for (const { member, role } of rolesToAdd[hre.network.name]) {
-    multicallWriteParams.push(timelock.interface.encodeFunctionData(timelockMethod, [member, hashString(role)]));
+  if (["signalGrantRole", "grantRoleAfterSignal"].includes(timelockMethod)) {
+    for (const { member, role } of rolesToAdd[hre.network.name]) {
+      multicallWriteParams.push(timelock.interface.encodeFunctionData(timelockMethod, [member, hashString(role)]));
+    }
+  }
+
+  if (timelockMethod === "signalRevokeRole") {
+    for (const { member, role } of rolesToRemove[hre.network.name]) {
+      multicallWriteParams.push(timelock.interface.encodeFunctionData(timelockMethod, [member, hashString(role)]));
+      // signalGrantRole in case the revocation of the role needs to be reverted
+      multicallWriteParams.push(timelock.interface.encodeFunctionData("signalGrantRole", [member, hashString(role)]));
+    }
+  }
+
+  if (timelockMethod === "revokeRoleAfterSignal") {
+    for (const { member, role } of rolesToRemove[hre.network.name]) {
+      multicallWriteParams.push(timelock.interface.encodeFunctionData(timelockMethod, [member, hashString(role)]));
+    }
   }
 
   console.log(`updating ${multicallWriteParams.length} roles`);
   console.log("multicallWriteParams", multicallWriteParams);
 
   if (process.env.WRITE === "true") {
+    if (multicallWriteParams.length === 0) {
+      throw new Error("multicallWriteParams is empty");
+    }
+
     await timelock.multicall(multicallWriteParams);
   } else {
     console.log("NOTE: executed in read-only mode, no transactions were sent");

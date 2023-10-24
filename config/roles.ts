@@ -78,6 +78,22 @@ export default async function (hre: HardhatRuntimeEnvironment): Promise<RolesCon
         rolesToRemove: ["MARKET_KEEPER"],
         account: "0xE7BfFf2aB721264887230037940490351700a068",
       },
+
+      {
+        roles: ["ORDER_KEEPER"],
+        account: "0x5051fd154320584c9cc2071aed772656e8fcd855",
+        label: "Chainlink market order keeper",
+      },
+      {
+        roles: ["ORDER_KEEPER"],
+        account: "0xe0886d9baaad385f37d460a4ec7b32b79a3731e0",
+        label: "Chainlink deposit keeper",
+      },
+      {
+        roles: ["ORDER_KEEPER"],
+        account: "0x49d30b3035c647bf57f3845da287bd84d80bda2c",
+        label: "Chainlink withdrawal keeper",
+      },
     ],
     avalanche: [
       ...getMainnetRoles({ multisigAccount: "0x15F9eBC71c539926B8f652a534d29B4Af57CaD55" }),
@@ -201,6 +217,24 @@ export default async function (hre: HardhatRuntimeEnvironment): Promise<RolesCon
         // Chainlink withdrawal executor
         account: "0x6c5121112e0758212ca3e8f141371a5a3dda32fe",
         label: "chainlink withdrawals keeper C",
+        roles: ["ORDER_KEEPER"],
+      },
+
+      {
+        account: "0x91dbA32fdfF84D6142d4f9EeD610C2Ec49dB8E1D",
+        label: "chainlink keeper D",
+        roles: ["ORDER_KEEPER"],
+      },
+
+      {
+        account: "0x2c70bf4b3d53012e72cf01891fc2d33963bfec8c",
+        label: "chainlink deposits keeper E",
+        roles: ["ORDER_KEEPER"],
+      },
+
+      {
+        account: "0x06940fe7e3d4443f35b494ff6702ab2994d8fb90",
+        label: "chainlink withdrawals keeper E",
         roles: ["ORDER_KEEPER"],
       },
     ],

@@ -312,7 +312,18 @@ const func = async ({ deployments, getNamedAccounts, gmx }: HardhatRuntimeEnviro
       `market token transfer gas limit`
     );
 
-    for (const name of ["positionImpactExponentFactor", "fundingFactor"]) {
+    for (const name of [
+      "positionImpactExponentFactor",
+      "fundingFactor",
+      "fundingIncreaseFactorPerSecond",
+      "fundingDecreaseFactorPerSecond",
+      "minFundingFactorPerSecond",
+      "maxFundingFactorPerSecond",
+      "thresholdForStableFunding",
+      "thresholdForDecreaseFunding",
+      "positionImpactPoolDistributionRate",
+      "minPositionImpactPoolAmount",
+    ]) {
       if (marketConfig[name]) {
         const value = marketConfig[name];
         const key = keys[`${name}Key`](marketToken);

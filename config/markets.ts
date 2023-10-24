@@ -1,4 +1,4 @@
-import { BigNumberish } from "ethers";
+import { BigNumberish, ethers } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { expandDecimals, decimalToFloat } from "../utils/math";
@@ -67,6 +67,15 @@ export type BaseMarketConfig = {
 
   fundingFactor: BigNumberish;
   fundingExponentFactor: BigNumberish;
+  fundingIncreaseFactorPerSecond: BigNumberish;
+  fundingDecreaseFactorPerSecond: BigNumberish;
+  thresholdForStableFunding: BigNumberish;
+  thresholdForDecreaseFunding: BigNumberish;
+  minFundingFactorPerSecond: BigNumberish;
+  maxFundingFactorPerSecond: BigNumberish;
+
+  positionImpactPoolDistributionRate: BigNumberish;
+  minPositionImpactPoolAmount: BigNumberish;
 
   virtualMarketId?: string;
   virtualTokenIdForIndexToken?: string;
@@ -78,6 +87,7 @@ export type SpotMarketConfig = Partial<BaseMarketConfig> & {
   tokens: {
     longToken: string;
     shortToken: string;
+    indexToken?: never;
   };
   swapOnly: true;
 };
@@ -158,14 +168,24 @@ const baseMarketConfig: BaseMarketConfig = {
 
   fundingFactor: decimalToFloat(2, 8), // ~63% per year for a 100% skew
   fundingExponentFactor: decimalToFloat(1),
+
+  fundingIncreaseFactorPerSecond: 0,
+  fundingDecreaseFactorPerSecond: 0,
+  thresholdForStableFunding: 0,
+  thresholdForDecreaseFunding: 0,
+  minFundingFactorPerSecond: 0,
+  maxFundingFactorPerSecond: 0,
+
+  positionImpactPoolDistributionRate: 0,
+  minPositionImpactPoolAmount: 0,
 };
 
 const synthethicMarketConfig: Partial<BaseMarketConfig> = {
-  reserveFactorLongs: decimalToFloat(7, 1), // 70%,
-  reserveFactorShorts: decimalToFloat(7, 1), // 70%,
+  reserveFactorLongs: decimalToFloat(8, 1), // 80%,
+  reserveFactorShorts: decimalToFloat(8, 1), // 80%,
 
-  openInterestReserveFactorLongs: decimalToFloat(5, 1), // 50%,
-  openInterestReserveFactorShorts: decimalToFloat(5, 1), // 50%,
+  openInterestReserveFactorLongs: decimalToFloat(7, 1), // 70%,
+  openInterestReserveFactorShorts: decimalToFloat(7, 1), // 70%,
 
   maxPnlFactorForTradersLongs: decimalToFloat(5, 1), // 50%
   maxPnlFactorForTradersShorts: decimalToFloat(5, 1), // 50%
@@ -247,11 +267,11 @@ const config: {
 
       ...baseMarketConfig,
 
-      maxLongTokenPoolAmount: expandDecimals(350, 8),
-      maxShortTokenPoolAmount: expandDecimals(10_000_000, 6),
+      maxLongTokenPoolAmount: expandDecimals(500, 8),
+      maxShortTokenPoolAmount: expandDecimals(15_000_000, 6),
 
-      maxLongTokenPoolAmountForDeposit: expandDecimals(350, 8),
-      maxShortTokenPoolAmountForDeposit: expandDecimals(10_000_000, 6),
+      maxLongTokenPoolAmountForDeposit: expandDecimals(500, 8),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(15_000_000, 6),
 
       negativePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
       positivePositionImpactFactor: decimalToFloat(12, 11), // 0.05% for ~4,200,000 USD of imbalance
@@ -300,8 +320,8 @@ const config: {
       maxLongTokenPoolAmountForDeposit: expandDecimals(500, 18),
       maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(28, 9),
+      positivePositionImpactFactor: decimalToFloat(14, 9),
 
       // the swap impact factor is for WETH-stablecoin swaps
       negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
@@ -329,8 +349,8 @@ const config: {
       maxLongTokenPoolAmountForDeposit: expandDecimals(500, 18),
       maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(26, 9),
+      positivePositionImpactFactor: decimalToFloat(13, 9),
 
       // the swap impact factor is for WETH-stablecoin swaps
       negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
@@ -357,8 +377,8 @@ const config: {
       maxLongTokenPoolAmountForDeposit: expandDecimals(50_000, 9),
       maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(76, 10),
+      positivePositionImpactFactor: decimalToFloat(38, 10),
 
       negativeSwapImpactFactor: decimalToFloat(1, 8), // 0.05% for 50,000 USD of imbalance
       positiveSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
@@ -385,8 +405,8 @@ const config: {
       maxLongTokenPoolAmountForDeposit: expandDecimals(500, 18),
       maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(36, 9),
+      positivePositionImpactFactor: decimalToFloat(18, 9),
 
       // the swap impact factor is for WETH-stablecoin swaps
       negativeSwapImpactFactor: decimalToFloat(5, 9), // 0.05% for 100,000 USD of imbalance
@@ -413,8 +433,8 @@ const config: {
       maxLongTokenPoolAmountForDeposit: expandDecimals(200_000, 18),
       maxShortTokenPoolAmountForDeposit: expandDecimals(1_000_000, 6),
 
-      negativePositionImpactFactor: decimalToFloat(3, 8), // 0.05% for 16,667 USD of imbalance
-      positivePositionImpactFactor: decimalToFloat(15, 9), // 0.05% for 33,333 USD of imbalance
+      negativePositionImpactFactor: decimalToFloat(42, 9),
+      positivePositionImpactFactor: decimalToFloat(21, 9),
 
       negativeSwapImpactFactor: decimalToFloat(3, 8), // 0.05% for 16,667 USD of imbalance
       positiveSwapImpactFactor: decimalToFloat(15, 9), // 0.05% for 33,333 USD of imbalance
@@ -461,11 +481,11 @@ const config: {
 
       ...baseMarketConfig,
 
-      maxLongTokenPoolAmount: expandDecimals(1_500_000, 18),
-      maxShortTokenPoolAmount: expandDecimals(1_250_000, 6),
+      maxLongTokenPoolAmount: expandDecimals(2_250_000, 18),
+      maxShortTokenPoolAmount: expandDecimals(2_000_000, 6),
 
-      maxLongTokenPoolAmountForDeposit: expandDecimals(1_500_000, 18),
-      maxShortTokenPoolAmountForDeposit: expandDecimals(1_250_000, 6),
+      maxLongTokenPoolAmountForDeposit: expandDecimals(2_250_000, 18),
+      maxShortTokenPoolAmountForDeposit: expandDecimals(2_000_000, 6),
 
       negativePositionImpactFactor: decimalToFloat(8, 9), // 0.05% for 62,500 USD of imbalance
       positivePositionImpactFactor: decimalToFloat(4, 9), // 0.05% for 125,000 USD of imbalance
@@ -757,30 +777,77 @@ const config: {
     {
       tokens: { indexToken: "WETH", longToken: "WETH", shortToken: "USDC" },
       virtualMarketId: "0x04533437e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481d",
+
+      fundingIncreaseFactorPerSecond: decimalToFloat(1, 11), // 0.000000001% per second,  0,0000036% per hour
+      fundingDecreaseFactorPerSecond: decimalToFloat(5, 12), // 0.0000000005% per second, 0,0000018% per hour
+      minFundingFactorPerSecond: decimalToFloat(1, 9), // 0,0000001% per second, 0.00036% per hour
+      maxFundingFactorPerSecond: decimalToFloat(3, 8), // 0,000003% per second,  0,0108% per hour
+
+      thresholdForStableFunding: decimalToFloat(5, 2), // 5%
+      thresholdForDecreaseFunding: decimalToFloat(2, 2), // 2%
     },
     {
       tokens: { indexToken: "WETH", longToken: "WETH", shortToken: "DAI" },
-      virtualMarketId: "0x04533437e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481d",
+      virtualMarketId: ethers.constants.HashZero,
     },
     { tokens: { indexToken: "WETH", longToken: "USDC", shortToken: "USDC" } },
     {
       tokens: { indexToken: "WBTC", longToken: "WBTC", shortToken: "USDC" },
       virtualMarketId: "0x11111137e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481f",
       virtualTokenIdForIndexToken: "0x04533137e2e8ae1c11111111a0dd36e023e0d6217198f889f9eb9c2a6727481d",
+      positionImpactPoolDistributionRate: expandDecimals(1, 30), // 1 sat per second
+
+      negativePositionImpactFactor: decimalToFloat(1, 9),
+      positivePositionImpactFactor: decimalToFloat(5, 10),
+      negativeSwapImpactFactor: decimalToFloat(1, 7),
+      positiveSwapImpactFactor: decimalToFloat(5, 8),
     },
     {
       tokens: { indexToken: "WBTC", longToken: "WBTC", shortToken: "DAI" },
+
+      negativePositionImpactFactor: decimalToFloat(1, 9),
+      positivePositionImpactFactor: decimalToFloat(5, 10),
+      negativeSwapImpactFactor: decimalToFloat(1, 7),
+      positiveSwapImpactFactor: decimalToFloat(5, 8),
     },
     {
       tokens: { indexToken: "SOL", longToken: "WBTC", shortToken: "USDC" },
       isDisabled: false,
+
+      negativePositionImpactFactor: decimalToFloat(1, 9),
+      positivePositionImpactFactor: decimalToFloat(5, 10),
+      negativeSwapImpactFactor: decimalToFloat(1, 7),
+      positiveSwapImpactFactor: decimalToFloat(5, 8),
     },
     {
       tokens: { longToken: "USDC", shortToken: "USDT" },
       swapOnly: true,
+
+      negativeSwapImpactFactor: decimalToFloat(2, 8),
+      positiveSwapImpactFactor: decimalToFloat(1, 8),
     },
-    { tokens: { indexToken: "DOGE", longToken: "WBTC", shortToken: "DAI" } },
-    { tokens: { indexToken: "LINK", longToken: "WBTC", shortToken: "DAI" } },
+    {
+      tokens: {
+        indexToken: "DOGE",
+        longToken: "WBTC",
+        shortToken: "DAI",
+      },
+      positionImpactPoolDistributionRate: expandDecimals(1, 38), // 1 DOGE / second
+      minPositionImpactPoolAmount: expandDecimals(8000, 8), // 8000 DOGE
+
+      negativePositionImpactFactor: decimalToFloat(1, 9),
+      positivePositionImpactFactor: decimalToFloat(5, 10),
+      negativeSwapImpactFactor: decimalToFloat(1, 7),
+      positiveSwapImpactFactor: decimalToFloat(5, 8),
+    },
+    {
+      tokens: { indexToken: "LINK", longToken: "WBTC", shortToken: "DAI" },
+
+      negativePositionImpactFactor: decimalToFloat(1, 9),
+      positivePositionImpactFactor: decimalToFloat(5, 10),
+      negativeSwapImpactFactor: decimalToFloat(1, 7),
+      positiveSwapImpactFactor: decimalToFloat(5, 8),
+    },
     { tokens: { indexToken: "BNB", longToken: "WBTC", shortToken: "DAI" }, isDisabled: true },
     { tokens: { indexToken: "ADA", longToken: "WBTC", shortToken: "DAI" }, isDisabled: true },
     { tokens: { indexToken: "TRX", longToken: "WBTC", shortToken: "DAI" }, isDisabled: true },
@@ -793,7 +860,7 @@ const config: {
         longToken: "WBTC",
         shortToken: "USDC",
       },
-      negativePositionImpactFactor: decimalToFloat(25, 6), // 0.0025 %
+      negativePositionImpactFactor: decimalToFloat(26, 6), // 0.0025 %
       positivePositionImpactFactor: decimalToFloat(125, 7), // 0.00125 %
       positionImpactExponentFactor: decimalToFloat(2, 0), // 2
       negativeSwapImpactFactor: decimalToFloat(1, 5), // 0.001 %
@@ -839,7 +906,7 @@ const config: {
     },
     {
       tokens: { indexToken: "WETH", longToken: "WETH", shortToken: "DAI" },
-      virtualMarketId: "0x04533437e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481d",
+      virtualMarketId: hashString("SPOT:AVAX/USD"),
       virtualTokenIdForIndexToken: "0x275d2a6e341e6a078d4eee59b08907d1e50825031c5481f9551284f4b7ee2fb9",
     },
     {

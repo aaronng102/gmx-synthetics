@@ -53,10 +53,15 @@ library Errors {
     // ExchangeUtils errors
     error RequestNotYetCancellable(uint256 requestAge, uint256 requestExpirationAge, string requestType);
 
+    // ExternalHandler errors
+    error ExternalCallFailed(bytes data);
+    error InvalidExternalCallInput(uint256 targetsLength, uint256 dataListLength);
+    error InvalidExternalReceiversInput(uint256 refundTokensLength, uint256 refundReceiversLength);
+    error InvalidExternalCallTarget(address target);
+
     // GlpMigrator errors
     error InvalidGlpAmount(uint256 totalGlpAmountToRedeem, uint256 totalGlpAmount);
-    error InvalidLongTokenForMigration(address market, address migrationLongToken, address marketLongToken);
-    error InvalidShortTokenForMigration(address market, address migrationShortToken, address marketShortToken);
+    error InvalidExecutionFeeForMigration(uint256 totalExecutionFee, uint256 msgValue);
 
     // OrderHandler errors
     error OrderNotUpdatable(uint256 orderType);
