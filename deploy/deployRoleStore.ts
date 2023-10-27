@@ -6,9 +6,13 @@ const func = createDeployFunction({
   id: "RoleStore_3",
   afterDeploy: async ({ gmx }) => {
     const rolesConfig = await gmx.getRoles();
+    // console.log(" --------> role store: " + JSON.stringify(rolesConfig));
     for (const { account, roles } of rolesConfig) {
-      for (const role of roles) {
-        await grantRoleIfNotGranted(account, role);
+      // console.log(" --------> account %s,  roles: %s", account, JSON.stringify(roles));
+      if (roles !== undefined) {
+        for (const role of roles) {
+          await grantRoleIfNotGranted(account, role);
+        }
       }
     }
   },

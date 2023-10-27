@@ -108,7 +108,7 @@ export default async function (hre: HardhatRuntimeEnvironment): Promise<RolesCon
     ],
     arbitrumGoerli: [
       {
-        account: "0xC84f3398eDf6336E1Ef55b50Ca3F9f9f96B8b504",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         roles: [
           "CONTROLLER",
           "ORDER_KEEPER",
@@ -119,7 +119,7 @@ export default async function (hre: HardhatRuntimeEnvironment): Promise<RolesCon
         ],
       },
       {
-        account: "0xFb11f15f206bdA02c224EDC744b0E50E46137046",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         roles: [
           "CONTROLLER",
           "ORDER_KEEPER",
@@ -131,116 +131,116 @@ export default async function (hre: HardhatRuntimeEnvironment): Promise<RolesCon
       },
       {
         // Chainlink order executor
-        account: "0xE0886d9baAaD385F37d460A4ec7b32b79a3731e0",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         rolesToRemove: ["ORDER_KEEPER"],
       },
       {
         // Chainlink deposit executor
-        account: "0x239878637fA148819e32Fb8799152bf54F5A34a6",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         rolesToRemove: ["ORDER_KEEPER"],
       },
       {
         // Chainlink withdrawal executor
-        account: "0x6b2e203597Fe6D28Ad44CEFb10Df34d6Ba00721A",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         rolesToRemove: ["ORDER_KEEPER"],
       },
 
       // new
       {
         // Chainlink order executor
-        account: "0x30213e04b9c86492c044e6803315e82d86efbd09",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink market orders keeper",
         rolesToRemove: ["ORDER_KEEPER"],
       },
       {
         // Chainlink deposit executor
-        account: "0x5a686c999d6083a183a2a8d459e96e65fc864c96",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink deposits keeper",
         rolesToRemove: ["ORDER_KEEPER"],
       },
       {
         // Chainlink withdrawal executor
-        account: "0x27cce6af7ad5990014235ace4ddacd489e583b56",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink withdrawals keeper",
         rolesToRemove: ["ORDER_KEEPER"],
       },
 
       // delist old handlers
       {
-        account: "0x5B074a1874Ca3bA78e47DE3f3836A120C7ED8DF1",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "deposit handler A",
         roles: ["CONTROLLER"],
       },
       {
-        account: "0xC710E73201100FE6d7Ee73fcC5f8A7Cd51566588",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "order handler A",
         roles: ["CONTROLLER"],
       },
       {
-        account: "0x8d860ac6F995aB811a2239E9423447254c05Cd59",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "withdrawal handler A",
         roles: ["CONTROLLER"],
       },
 
       {
         // Chainlink order executor
-        account: "0x35837c595aA4f304C38ea32EB49EfB198a58e613",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink market orders keeper B",
         roles: ["ORDER_KEEPER"],
       },
       {
         // Chainlink deposit executor
-        account: "0x7a98919E470fAeD2fBc7F0505a4b71d07e562E9C",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink deposits keeper B",
         roles: ["ORDER_KEEPER"],
       },
       {
         // Chainlink withdrawal executor
-        account: "0x416eE83799534fDb15A500999D34B9cd7Fcf38C8",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink withdrawals keeper B",
         roles: ["ORDER_KEEPER"],
       },
 
       {
         // Chainlink order executor
-        account: "0x972c9caec0dd66ae8d1765c560419551af3a56ac",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink market orders keeper C",
         roles: ["ORDER_KEEPER"],
       },
       {
         // Chainlink deposit executor
-        account: "0xa7FEDFf8A6c60343B1b717d94B761bb8e8d77406",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink deposits keeper C",
         roles: ["ORDER_KEEPER"],
       },
       {
         // Chainlink withdrawal executor
-        account: "0x6c5121112e0758212ca3e8f141371a5a3dda32fe",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink withdrawals keeper C",
         roles: ["ORDER_KEEPER"],
       },
 
       {
-        account: "0x91dbA32fdfF84D6142d4f9EeD610C2Ec49dB8E1D",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink keeper D",
         roles: ["ORDER_KEEPER"],
       },
 
       {
-        account: "0x2c70bf4b3d53012e72cf01891fc2d33963bfec8c",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink deposits keeper E",
         roles: ["ORDER_KEEPER"],
       },
 
       {
-        account: "0x06940fe7e3d4443f35b494ff6702ab2994d8fb90",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         label: "chainlink withdrawals keeper E",
         roles: ["ORDER_KEEPER"],
       },
     ],
     avalancheFuji: [
       {
-        account: "0xC84f3398eDf6336E1Ef55b50Ca3F9f9f96B8b504",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         roles: [
           "CONTROLLER",
           "ORDER_KEEPER",
@@ -251,7 +251,7 @@ export default async function (hre: HardhatRuntimeEnvironment): Promise<RolesCon
         ],
       },
       {
-        account: "0xFb11f15f206bdA02c224EDC744b0E50E46137046",
+        account: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
         roles: [
           "CONTROLLER",
           "ORDER_KEEPER",

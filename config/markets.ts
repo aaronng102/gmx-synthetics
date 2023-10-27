@@ -776,7 +776,7 @@ const config: {
   arbitrumGoerli: [
     {
       tokens: { indexToken: "WETH", longToken: "WETH", shortToken: "USDC" },
-      virtualMarketId: "0x04533437e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481d",
+      // virtualMarketId: "0x04533437e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481d",
 
       fundingIncreaseFactorPerSecond: decimalToFloat(1, 11), // 0.000000001% per second,  0,0000036% per hour
       fundingDecreaseFactorPerSecond: decimalToFloat(5, 12), // 0.0000000005% per second, 0,0000018% per hour
@@ -788,13 +788,13 @@ const config: {
     },
     {
       tokens: { indexToken: "WETH", longToken: "WETH", shortToken: "DAI" },
-      virtualMarketId: ethers.constants.HashZero,
+      // virtualMarketId: ethers.constants.HashZero,
     },
     { tokens: { indexToken: "WETH", longToken: "USDC", shortToken: "USDC" } },
     {
       tokens: { indexToken: "WBTC", longToken: "WBTC", shortToken: "USDC" },
-      virtualMarketId: "0x11111137e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481f",
-      virtualTokenIdForIndexToken: "0x04533137e2e8ae1c11111111a0dd36e023e0d6217198f889f9eb9c2a6727481d",
+      // virtualMarketId: "0x11111137e2e8ae1c70c421e7a0dd36e023e0d6217198f889f9eb9c2a6727481f",
+      // virtualTokenIdForIndexToken: "0x04533137e2e8ae1c11111111a0dd36e023e0d6217198f889f9eb9c2a6727481d",
       positionImpactPoolDistributionRate: expandDecimals(1, 30), // 1 sat per second
 
       negativePositionImpactFactor: decimalToFloat(1, 9),
